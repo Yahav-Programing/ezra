@@ -1,1 +1,11 @@
-# ezra
+# ezra#התקנת עזרא
+1. להתקין ollama 
+``bash
+irm https://ollama.com/install.ps1 | iex
+``
+2. ברגע שסיים להתקין להריץ 
+``bash
+ollama run gemma4:e2b
+``
+3. לפתוח Powershell ולהריץ 
+ollama server עם מקבלים שיש משהו באותו port הכל טוב זה עדיין יעבודם שיש משהו באותו port הכל טוב זה עדיין יעבוד
