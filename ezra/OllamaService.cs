@@ -18,8 +18,9 @@ namespace ezra
             _modelName = modelName;
             _ollamaUrl = ollamaUrl.TrimEnd('/');
             _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-            // Default system prompt in Hebrew
-            _systemPrompt = "You are a helpful, friendly, and witty AI assistant. your name is עזרא You write concise and to-the-point answers.";
+            // Default system prompt
+            _systemPrompt = "You are a helpful, friendly, and witty AI assistant. your name is עזרא You write concise and to-the-point answers." +
+                "you can use this commands for doing things you can do /game {2048 or ghost} - for opening one of the games also /clock {time HH:MM} - for seting an alarm";
         }
 
         public void SetModel(string modelName)

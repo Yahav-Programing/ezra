@@ -130,8 +130,8 @@ namespace ezra
                         // Hide typing indicator and show response
                         await webView.CoreWebView2.ExecuteScriptAsync("hideTypingIndicator();");
 
-                        // Send response back to UI
-                        await SendMessageToWebAsync(response, isUser: false);
+                        // Check for commands in the response
+                        await ProcessAIResponse(response);
 
                         // Re-enable input
                         await webView.CoreWebView2.ExecuteScriptAsync("sendBtn.disabled = false; userInput.focus();");
@@ -141,6 +141,85 @@ namespace ezra
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in HandleWebMessage: {ex.Message}");
+            }
+        }
+
+        private async Task ProcessAIResponse(string response)
+        {
+            // Extract and process commands from AI response
+            // Look for /clock {HH:MM} and /game {2048 or ghost} patterns
+
+            // Check for /clock command
+            System.Text.RegularExpressions.Regex clockRegex = new System.Text.RegularExpressions.Regex(@"/clock\s*{\s*(\d{1,2}):(\d{2})\s*}");
+            var clockMatch = clockRegex.Match(response);
+
+            if (clockMatch.Success)
+            {
+                string hour = clockMatch.Groups[1].Value;
+                string minute = clockMatch.Groups[2].Value;
+
+                // Remove the command from the response
+                string displayText = clockRegex.Replace(response, "").Trim();
+                if (!string.IsNullOrEmpty(displayText))
+                {
+                    await SendMessageToWebAsync(displayText, isUser: false);
+                }
+
+                // Send alarm to clock interface
+                await SendAlarmToClock(hour, minute);
+                return;
+            }
+
+            // Check for /game command
+            System.Text.RegularExpressions.Regex gameRegex = new System.Text.RegularExpressions.Regex(@"/game\s*{\s*(2048|ghost)\s*}");
+            var gameMatch = gameRegex.Match(response);
+
+            if (gameMatch.Success)
+            {
+                string game = gameMatch.Groups[1].Value.ToLower();
+
+                // Remove the command from the response
+                string displayText = gameRegex.Replace(response, "").Trim();
+                if (!string.IsNullOrEmpty(displayText))
+                {
+                    await SendMessageToWebAsync(displayText, isUser: false);
+                }
+
+                // Launch the game
+                if (game == "2048")
+                {
+                    Launcher.RunApp(@"Data\2048\2048.exe");
+                }
+                else if (game == "ghost")
+                {
+                    Launcher.RunApp(@"Data\client-ghost-game\client-side ghost game.exe");
+                }
+                return;
+            }
+
+            // Default: just display the response
+            await SendMessageToWebAsync(response, isUser: false);
+        }
+
+        private async Task SendAlarmToClock(string hour, string minute)
+        {
+            try
+            {
+                // Send message to clock.html to set the alarm
+                string script = $@"
+if(window.chrome && window.chrome.webview){{
+    window.chrome.webview.postMessage({{
+        type: 'setAlarm',
+        hour: {hour},
+        minute: {minute},
+        label: 'Alarm from Ezra'
+    }});
+}}";
+                await webView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending alarm to clock: {ex.Message}");
             }
         }
 

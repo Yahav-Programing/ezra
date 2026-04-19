@@ -149,9 +149,10 @@ body.light #themeToggle:hover{background:#ddd;}
 
 <canvas id="canvas"></canvas>
 <div id="chatContainer"></div>
+<div id="clockContainer" style="display:none;"></div>
 
 <div id="buttonsContainer">
-  <button class="action-btn" id="alarmBtn">⏰ שעון מעורר</button>
+  <button class="action-btn" id="clockBtn">⏰ שעון מעורר</button>
   <button class="action-btn" id="spotifyBtn">🎵 Spotify</button>
   <button class="action-btn" id="gameBtn">🎮 משחקים</button>
   <button class="action-btn" id="jokeBtn">😂 בדיחה</button>
@@ -173,10 +174,11 @@ body.light #themeToggle:hover{background:#ddd;}
 <script>
 // ── Elements ──────────────────────────────────────────────
 const chatContainer = document.getElementById('chatContainer');
+const clockContainer = document.getElementById('clockContainer');
 const userInput     = document.getElementById('userInput');
 const sendBtn       = document.getElementById('sendBtn');
 const themeToggle   = document.getElementById('themeToggle');
-const alarmBtn      = document.getElementById('alarmBtn');
+const clockBtn      = document.getElementById('clockBtn');
 const spotifyBtn    = document.getElementById('spotifyBtn');
 const gameBtn       = document.getElementById('gameBtn');
 const jokeBtn       = document.getElementById('jokeBtn');
@@ -400,12 +402,9 @@ userInput.addEventListener('keydown', (e) => {
 });
 
 // ── Action Button Handlers ───────────────────────────────
-alarmBtn.addEventListener('click', () => {
-  console.log('Alarm button clicked');
-  addMessage('תעיר אותי בבקשה', true);
-  if(window.chrome && window.chrome.webview){
-    window.chrome.webview.postMessage({type: 'launchApp', app: 'alarm'});
-  }
+clockBtn.addEventListener('click', () => {
+  console.log('Clock button clicked');
+  toggleClockView();
 });
 
 spotifyBtn.addEventListener('click', () => {
@@ -433,6 +432,171 @@ jokeBtn.addEventListener('click', () => {
     window.chrome.webview.postMessage({type: 'getJoke'});
   }
 });
+
+// ──────────────────────────── CLOCK FUNCTIONALITY ──────────────────────────────
+
+// Clock toggle function
+function toggleClockView(){
+  const chatDiv=document.getElementById('chatContainer');
+  const clockDiv=document.getElementById('clockContainer');
+  const inputDiv=document.getElementById('inputContainer');
+  const btnDiv=document.getElementById('buttonsContainer');
+
+  if(clockDiv.style.display==='none' || clockDiv.innerHTML===''){
+    if(clockDiv.innerHTML==='') initializeClock();
+    chatDiv.style.display='none';
+    inputDiv.style.display='none';
+    btnDiv.style.display='none';
+    clockDiv.style.display='block';
+    clockDiv.style.flex='1';
+    clockDiv.style.overflow='auto';
+  } else {
+    chatDiv.style.display='flex';
+    inputDiv.style.display='flex';
+    btnDiv.style.display='flex';
+    clockDiv.style.display='none';
+  }
+}
+
+// Initialize clock
+function initializeClock(){
+  const clockDiv=document.getElementById('clockContainer');
+
+  // Include basic clock HTML structure
+  clockDiv.innerHTML=`
+    <div id="clockApp" style="display:flex;flex-direction:column;align-items:center;gap:24px;padding:28px 16px 20px;width:100%;height:100%;overflow-y:auto;">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;">
+        <button id="backBtn" style="width:38px;height:38px;border-radius:50%;border:1px solid #444;background:transparent;color:#e8eaed;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">⬅</button>
+        <button id="themeToggleClock" style="width:38px;height:38px;border-radius:50%;border:1px solid #444;background:transparent;color:#e8eaed;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">🌓</button>
+      </div>
+      <div id="clockFace" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 32px;border-radius:24px;border:1px solid #383838;background:#2a2a2e;width:100%;">
+        <div id="clock" style="font-size:64px;font-weight:200;letter-spacing:-2px;">00:00:00</div>
+        <div id="date" style="font-size:14px;color:#9aa0a6;"></div>
+      </div>
+      <div id="alertBar" style="width:100%;border-radius:20px;padding:18px 24px;border:1px solid #0b93f6;background:#1a1f2e;display:none;flex-direction:column;gap:12px;align-items:center;">
+        <div id="alertMsg" style="font-size:17px;font-weight:500;color:#e8eaed;">⏰ Alarm!</div>
+        <div id="alertTime" style="font-size:28px;font-weight:200;color:#0b93f6;"></div>
+        <div style="display:flex;gap:10px;width:100%;">
+          <button id="snoozeBtn" style="flex:1;padding:12px;border-radius:14px;border:none;background:#303134;color:#e8eaed;cursor:pointer;">Snooze 5 min</button>
+          <button id="dismissBtn" style="flex:1;padding:12px;border-radius:14px;border:none;background:#0b93f6;color:#fff;cursor:pointer;">Dismiss</button>
+        </div>
+      </div>
+      <div id="setCard" style="width:100%;border-radius:20px;padding:20px 24px;border:1px solid #383838;background:#2a2a2e;display:flex;flex-direction:column;gap:16px;">
+        <span style="font-size:12px;color:#9aa0a6;">New Alarm</span>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+          <input id="hourInput" type="number" min="0" max="23" value="07" style="font-size:32px;width:64px;border:none;background:transparent;color:#e8eaed;text-align:center;border-bottom:1px solid #555;outline:none;" />
+          <span style="font-size:28px;color:#555;">:</span>
+          <input id="minInput" type="number" min="0" max="59" value="00" style="font-size:32px;width:64px;border:none;background:transparent;color:#e8eaed;text-align:center;border-bottom:1px solid #555;outline:none;" />
+        </div>
+        <input id="alarmLabel" type="text" placeholder="Label…" maxlength="40" style="width:100%;padding:10px 14px;border-radius:12px;border:1px solid #444;background:#303134;color:#e8eaed;outline:none;" />
+        <button id="setBtn" style="width:100%;padding:14px;border-radius:25px;border:none;background:#0b93f6;color:#fff;cursor:pointer;font-weight:500;">Set Alarm</button>
+      </div>
+      <div id="alarmList" style="width:100%;display:flex;flex-direction:column;gap:10px;"></div>
+    </div>`;
+
+  // Initialize clock functionality
+  initializeClockLogic();
+}
+
+function initializeClockLogic(){
+  const hourInput = document.getElementById('hourInput');
+  const minInput = document.getElementById('minInput');
+  const backBtn = document.getElementById('backBtn');
+
+  if(hourInput){
+    hourInput.addEventListener('blur', function(){
+      let v = parseInt(this.value, 10);
+      if(isNaN(v)) v = 0;
+      this.value = Math.min(23, Math.max(0, v));
+    });
+  }
+
+  if(minInput){
+    minInput.addEventListener('blur', function(){
+      let v = parseInt(this.value, 10);
+      if(isNaN(v)) v = 0;
+      this.value = Math.min(59, Math.max(0, v));
+    });
+  }
+
+  if(backBtn){
+    backBtn.addEventListener('click', toggleClockView);
+  }
+
+  // Clock tick function
+  function updateClock(){
+    const now = new Date();
+    const clockEl = document.getElementById('clock');
+    const dateEl = document.getElementById('date');
+
+    if(clockEl) clockEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    if(dateEl) {
+      const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      dateEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+    }
+  }
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Set alarm handler
+  const setBtn = document.getElementById('setBtn');
+  if(setBtn){
+    setBtn.addEventListener('click', function(){
+      const h = parseInt(document.getElementById('hourInput').value, 10);
+      const m = parseInt(document.getElementById('minInput').value, 10);
+      if(isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59){
+        alert('Please enter a valid time.');
+        return;
+      }
+      const label = document.getElementById('alarmLabel').value.trim() || 'Alarm';
+      alert('Alarm set for ' + pad(h) + ':' + pad(m) + ' - ' + label);
+      document.getElementById('alarmLabel').value = '';
+    });
+  }
+}
+
+// WebView2 message handler for clock
+if(window.chrome && window.chrome.webview){
+  const originalListener = window.chrome.webview.addEventListener;
+  window.chrome.webview.addEventListener('message', e => {
+    const d = e.data;
+    if(d.type === 'setAlarm' && d.hour != null && d.minute != null){
+      setTimeout(() => {
+        const hourInput = document.getElementById('hourInput');
+        const minInput = document.getElementById('minInput');
+        const alarmLabel = document.getElementById('alarmLabel');
+        const setBtn = document.getElementById('setBtn');
+
+        if(!hourInput){
+          initializeClock();
+          setTimeout(() => {
+            const hourInput = document.getElementById('hourInput');
+            const minInput = document.getElementById('minInput');
+            const alarmLabel = document.getElementById('alarmLabel');
+            const setBtn = document.getElementById('setBtn');
+            if(hourInput && minInput && setBtn){
+              hourInput.value = String(d.hour).padStart(2, '0');
+              minInput.value = String(d.minute).padStart(2, '0');
+              if(d.label && alarmLabel) alarmLabel.value = d.label;
+              toggleClockView();
+              setBtn.click();
+            }
+          }, 100);
+        } else {
+          hourInput.value = String(d.hour).padStart(2, '0');
+          minInput.value = String(d.minute).padStart(2, '0');
+          if(d.label && alarmLabel) alarmLabel.value = d.label;
+          toggleClockView();
+          setBtn.click();
+        }
+      }, 50);
+    }
+  });
+}
 </script>
 </body>
 </html>
