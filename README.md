@@ -1,20 +1,22 @@
+# Welcome to the Ezra Project
 
-## Welcome to the ezra project
-this is my virsion of the ezra project 
+This is my version of the Ezra Project.
+
 ## Installation
 
-to Install ezra
-first downlode the full Releases 
-then downlode ollama local
+To install Ezra:
+
+1. Download the latest full release.
+
+2. Install Ollama locally by running:
 ```bash
 irm https://ollama.com/install.ps1 | iex
 ```
-then install the model
-
+3.Install the required model:
 ```bash
 ollama run gemma4:e2b
 ```
-finely run ollama 
+4.Finally, start the Ollama service:
 ```bash
 ollama  serve
 ```
