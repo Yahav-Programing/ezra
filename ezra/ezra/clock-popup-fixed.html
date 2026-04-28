@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alarm Countdown</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: #202124;
+            color: #e8eaed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 40px 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #alarmLabel {
+            font-size: 18px;
+            color: #9aa0a6;
+        }
+
+        #targetTime {
+            font-size: 32px;
+            font-weight: 300;
+            color: #e8eaed;
+            min-height: 40px;
+        }
+
+        .countdown-display {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #303134;
+            border: 3px solid #0b93f6;
+        }
+
+        .countdown-display.ringing {
+            border-color: #ff4f4f;
+            background: #ff4f4f;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from {
+                border-color: #ff4f4f;
+                box-shadow: 0 0 20px #ff4f4f;
+            }
+            to {
+                border-color: #ff0000;
+                box-shadow: 0 0 40px #ff0000;
+            }
+        }
+
+        #cdTime {
+            font-size: 52px;
+            font-weight: 200;
+            letter-spacing: -1px;
+        }
+
+        .ringing-message {
+            display: none;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .ringing-message.show {
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 20px;
+            border: 1px solid #555;
+            background: #2a2a2e;
+            color: #e8eaed;
+            cursor: pointer;
+            font-weight: 500;
+            flex: 1;
+            min-width: 150px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #303134;
+            border-color: #0b93f6;
+            transform: translateY(-2px);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        #dismissBtn {
+            background: #0b93f6;
+            border-color: #0b93f6;
+            display: none;
+        }
+
+        #dismissBtn.show {
+            display: block;
+        }
+
+        #dismissBtn:hover:not(:disabled) {
+            background: #0872c6;
+        }
+
+        #snoozeBtn {
+            display: none;
+        }
+
+        #snoozeBtn.show {
+            display: block;
+        }
+
+        #liveClock {
+            font-size: 12px;
+            color: #555;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="alarmLabel">? Alarm</div>
+        <div id="targetTime">--:--</div>
+
+        <div class="countdown-display" id="countdownDisplay">
+            <div id="cdTime">00:00</div>
+            <div class="ringing-message" id="ringMsg">
+                <div>?</div>
+                <div>זמן נגמר!</div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn" id="dismissBtn">התעלם</button>
+            <button class="btn" id="snoozeBtn">לדחות ב5דק</button>
+            <button class="btn" id="cancelBtn">ביטול</button>
+        </div>
+
+        <div id="liveClock">--:--:--</div>
+    </div>
+
+    <script>
+        // Configuration
+        let ALARM = {
+            hour: 14,
+            minute: 0,
+            label: 'Alarm'
+        };
+
+        let isRinging = false;
+        let audioContext = null;
+        let beepInterval = null;
+        let targetDate = null;
+        let totalDuration = 0;
+
+        // Utility function
+        function pad(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        // Set alarm time from C#
+        window.setAlarmTime = function(hour, minute, label = 'Alarm') {
+            console.log('setAlarmTime called:', hour, minute, label);
+            ALARM = {
+                hour: parseInt(hour),
+                minute: parseInt(minute),
+                label: label
+            };
+            initializeAlarm();
+        };
+
+        // Initialize alarm
+        function initializeAlarm() {
+            console.log('Initializing alarm:', ALARM);
+
+            // Set UI
+            document.getElementById('alarmLabel').textContent = '? ' + ALARM.label;
+            document.getElementById('targetTime').textContent = pad(ALARM.hour) + ':' + pad(ALARM.minute);
+
+            // Calculate target date
+            const now = new Date();
+            targetDate = new Date(now);
+            targetDate.setHours(ALARM.hour, ALARM.minute, 0, 0);
+
+            // If time has already passed, set for tomorrow
+            if (targetDate <= now) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+
+            totalDuration = (targetDate - now) / 1000;
+            console.log('Target date:', targetDate.toLocaleString());
+            console.log('Total duration (seconds):', totalDuration);
+
+            // Start the countdown
+            startCountdown();
+        }
+
+        // Start countdown
+        function startCountdown() {
+            // Update every second
+            setInterval(updateCountdown, 1000);
+            updateCountdown(); // Call once immediately
+        }
+
+        // Update countdown
+        function updateCountdown() {
+            const now = new Date();
+            const remaining = Math.max(0, Math.floor((targetDate - now) / 1000));
+
+            // Update live clock
+            document.getElementById('liveClock').textContent =
+                pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+
+            if (isRinging) return;
+
+            if (remaining === 0) {
+                // Time's up!
+                startRinging();
+                return;
+            }
+
+            // Update display
+            const hours = Math.floor(remaining / 3600);
+            const minutes = Math.floor((remaining % 3600) / 60);
+            const seconds = remaining % 60;
+
+            if (hours > 0) {
+                document.getElementById('cdTime').textContent = 
+                    pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+            } else {
+                document.getElementById('cdTime').textContent = 
+                    pad(minutes) + ':' + pad(seconds);
+            }
+        }
+
+        // Start ringing
+        function startRinging() {
+            console.log('ALARM RINGING!');
+            isRinging = true;
+
+            document.getElementById('countdownDisplay').classList.add('ringing');
+            document.getElementById('cdTime').style.display = 'none';
+            document.getElementById('ringMsg').classList.add('show');
+            document.getElementById('dismissBtn').classList.add('show');
+            document.getElementById('snoozeBtn').classList.add('show');
+            document.getElementById('cancelBtn').style.display = 'none';
+
+            playBeep();
+        }
+
+        // Stop all
+        function stopAll() {
+            isRinging = false;
+            stopBeep();
+            document.getElementById('countdownDisplay').classList.remove('ringing');
+            document.getElementById('cdTime').style.display = 'block';
+            document.getElementById('ringMsg').classList.remove('show');
+            document.getElementById('dismissBtn').classList.remove('show');
+            document.getElementById('snoozeBtn').classList.remove('show');
+            document.getElementById('cancelBtn').style.display = 'block';
+        }
+
+        // Play beep
+        function playBeep() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                function beep() {
+                    if (!audioContext) return;
+
+                    const now = audioContext.currentTime;
+
+                    // Create oscillator for alarm sound
+                    const osc1 = audioContext.createOscillator();
+                    const osc2 = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioContext.destination);
+
+                    // Two different frequencies for richer sound
+                    osc1.frequency.value = 1000;
+                    osc2.frequency.value = 800;
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.5);
+                    osc2.stop(now + 0.5);
+                }
+
+                beep();
+                beepInterval = setInterval(beep, 1000);
+            } catch (e) {
+                console.error('Audio error:', e);
+            }
+        }
+
+        // Stop beep
+        function stopBeep() {
+            if (beepInterval) {
+                clearInterval(beepInterval);
+                beepInterval = null;
+            }
+            if (audioContext) {
+                try {
+                    audioContext.close();
+                } catch (e) {}
+                audioContext = null;
+            }
+        }
+
+        // Button handlers
+        document.getElementById('dismissBtn').addEventListener('click', function() {
+            console.log('Dismiss clicked');
+            stopAll();
+            stopBeep();
+            // Close window after a delay
+            setTimeout(() => window.close(), 500);
+        });
+
+        document.getElementById('snoozeBtn').addEventListener('click', function() {
+            console.log('Snooze clicked');
+            stopAll();
+            stopBeep();
+
+            // Snooze for 5 minutes
+            const snoozeTime = new Date();
+            snoozeTime.setMinutes(snoozeTime.getMinutes() + 5);
+            ALARM.hour = snoozeTime.getHours();
+            ALARM.minute = snoozeTime.getMinutes();
+
+            initializeAlarm();
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', function() {
+            console.log('Cancel clicked');
+            stopBeep();
+            // Close window
+            setTimeout(() => window.close(), 300);
+        });
+
+        // Initialize when page loads
+        console.log('Clock popup loaded');
+        initializeAlarm();
+    </script>
+</body>
+</html>

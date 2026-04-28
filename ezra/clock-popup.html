@@ -1,0 +1,494 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alarm Countdown</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI',Roboto,sans-serif;
+            background: #202124;
+            color: #e8eaed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            transition: background .3s,color .3s;
+        }
+
+        #canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #app {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            padding: 32px 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #alarmLabel {
+            font-size: 16px;
+            color: #9aa0a6;
+            letter-spacing: .5px;
+            text-align: center;
+        }
+
+        #targetTime {
+            font-size: 22px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            color: #e8eaed;
+        }
+
+        /* ── Ring SVG ── */
+        #ringWrap {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            flex-shrink: 0;
+        }
+
+            #ringWrap svg {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+        #progressTrack {
+            fill: none;
+            stroke: #303134;
+            stroke-width: 10;
+        }
+
+        #progressArc {
+            fill: none;
+            stroke: #0b93f6;
+            stroke-width: 10;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: center;
+            transition: stroke-dashoffset .9s linear,stroke .3s;
+        }
+
+        #ringWrap.ringing #progressArc {
+            stroke: #ff4f4f;
+            animation: arc-pulse 1s infinite;
+        }
+
+        @keyframes arc-pulse {
+            0%,100% {
+                stroke: #ff4f4f;
+            }
+
+            50% {
+                stroke: #ff9f4f;
+            }
+        }
+
+        #countdown {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        #cdTime {
+            font-size: clamp(38px,10vw,52px);
+            font-weight: 200;
+            letter-spacing: -2px;
+            line-height: 1;
+        }
+
+        #cdLabel {
+            font-size: 12px;
+            color: #9aa0a6;
+            letter-spacing: .5px;
+        }
+
+        /* Ringing overlay inside ring */
+        #ringMsg {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+        }
+
+            #ringMsg.show {
+                display: flex;
+            }
+
+        #ringEmoji {
+            font-size: 48px;
+            animation: bounce .5s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-10px);
+            }
+        }
+
+        #ringTitle {
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-family: 'Segoe UI',sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background .2s,border-color .2s,transform .15s;
+        }
+
+            .btn:active {
+                transform: scale(.97) !important;
+            }
+
+        #cancelBtn {
+            border: 1px solid #555;
+            background: transparent;
+            color: #e8eaed;
+        }
+
+            #cancelBtn:hover {
+                background: #2a2a2e;
+                border-color: #0b93f6;
+                transform: translateY(-2px);
+            }
+
+        #dismissBtn {
+            border: none;
+            background: #0b93f6;
+            color: #fff;
+            display: none;
+        }
+
+            #dismissBtn.show {
+                display: block;
+            }
+
+            #dismissBtn:hover {
+                background: #0872c6;
+                transform: translateY(-2px);
+            }
+
+        #snoozeBtn {
+            border: 1px solid #555;
+            background: #2a2a2e;
+            color: #e8eaed;
+            display: none;
+        }
+
+            #snoozeBtn.show {
+                display: block;
+            }
+
+            #snoozeBtn:hover {
+                background: #303134;
+                border-color: #0b93f6;
+                transform: translateY(-2px);
+            }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,.25);
+            transform: scale(0);
+            animation: rip .5s linear forwards;
+            pointer-events: none;
+            width: 100%;
+            padding-bottom: 100%;
+            left: 0;
+            top: 50%;
+            margin-top: -50%;
+        }
+
+        @keyframes rip {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        #liveClock {
+            font-size: 13px;
+            color: #555;
+            letter-spacing: .5px;
+        }
+
+        @media(max-width:360px) {
+            #ringWrap {
+                width: 180px;
+                height: 180px;
+            }
+
+            #cdTime {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="app">
+        <div id="alarmLabel">⏰ Alarm</div>
+        <div id="targetTime">--:--</div>
+
+        <div id="ringWrap">
+            <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+                <circle id="progressTrack" cx="110" cy="110" r="100" />
+                <circle id="progressArc" cx="110" cy="110" r="100"
+                        stroke-dasharray="628.3" stroke-dashoffset="628.3" />
+            </svg>
+            <div id="countdown">
+                <div id="cdTime">--:--</div>
+                <div id="cdLabel">נשאר עוד</div>
+            </div>
+            <div id="ringMsg" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+                <div id="ringEmoji">⏰</div>
+                <div id="ringTitle">זמן נגמר!</div>
+            </div>
+        </div>
+
+        <button class="btn" id="snoozeBtn">לדחות ב5דק</button>
+        <button class="btn" id="dismissBtn">התעלם</button>
+        <button class="btn" id="cancelBtn">ביטול השעון</button>
+
+        <div id="liveClock"></div>
+    </div>
+
+    <script>
+// ── Particles ─────────────────────────────────────────────
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+const COLORS=['#0b93f6','#00d4ff','#7b8aff','#00ffcc','#ff7eb3'];
+const sparks=[];
+function newSpark(b){return{x:Math.random()*canvas.width,y:b?canvas.height+10:Math.random()*canvas.height,r:Math.random()*1.8+.8,speed:Math.random()*.35+.12,alpha:Math.random()*.2+.04,color:COLORS[Math.floor(Math.random()*COLORS.length)]};}
+for(let i=0;i<55;i++)sparks.push(newSpark(false));
+(function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(const s of sparks){s.y-=s.speed;if(s.y<-10)Object.assign(s,newSpark(true));ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=s.color;ctx.globalAlpha=s.alpha;ctx.fill();}
+  ctx.globalAlpha=1;requestAnimationFrame(loop);
+})();
+function burst(color){const cx=window.innerWidth/2,cy=window.innerHeight/2;for(let i=0;i<18;i++)sparks.push({x:cx,y:cy,r:Math.random()*4+1.5,speed:Math.random()*4+2,alpha:.9,color});}
+
+// ── Ripple helper ─────────────────────────────────────────
+function ripple(btn){const r=document.createElement('span');r.className='ripple';btn.appendChild(r);setTimeout(()=>r.remove(),500);}
+
+// ── Parse alarm from URL ──────────────────────────────────
+// Open this file as: alarm-countdown.html?hour=7&minute=30&label=Wake+up
+function getParams(){
+  const p=new URLSearchParams(window.location.search);
+  const wa=window.ALARM||{};
+  return{
+    hour  :parseInt(p.get('hour')  ??wa.hour  ??7,  10),
+    minute:parseInt(p.get('minute')??wa.minute??0,  10),
+    label :      (p.get('label') ??wa.label ??'Alarm')
+  };
+}
+let ALARM=getParams();
+function pad(n){return String(n).padStart(2,'0');}
+
+// ── Global function to set alarm time from C# ─────────────
+window.setAlarmTime = function(hour, minute, label = 'Alarm') {
+  console.log('setAlarmTime called with:', hour, minute, label);
+  ALARM = { hour: parseInt(hour), minute: parseInt(minute), label: label };
+  targetDate = calcTarget();
+  console.log('targetDate set to:', targetDate);
+  document.getElementById('alarmLabel').textContent = '⏰ ' + ALARM.label;
+  document.getElementById('targetTime').textContent = pad(ALARM.hour) + ':' + pad(ALARM.minute);
+  console.log('Alarm set to:', ALARM.hour + ':' + pad(ALARM.minute));
+};
+
+document.getElementById('alarmLabel').textContent='⏰ '+ALARM.label;
+document.getElementById('targetTime').textContent=pad(ALARM.hour)+':'+pad(ALARM.minute);
+
+// ── Target date ───────────────────────────────────────────
+function calcTarget(){
+  const now=new Date(),t=new Date(now);
+  t.setHours(ALARM.hour,ALARM.minute,0,0);
+  if(t<=now)t.setDate(t.getDate()+1);
+  console.log('calcTarget: now=' + now.toLocaleTimeString() + ', target=' + t.toLocaleTimeString());
+  return t;
+}
+let targetDate=calcTarget();
+let totalDuration=(targetDate-Date.now())/1000;
+console.log('Initial totalDuration:', totalDuration);
+
+// ── SVG arc ───────────────────────────────────────────────
+const CIRC=2*Math.PI*100;
+const arc=document.getElementById('progressArc');
+arc.style.strokeDasharray=CIRC;
+arc.style.strokeDashoffset=CIRC;
+
+// ── State ─────────────────────────────────────────────────
+let isRinging=false;
+let audioCtx=null,beepInterval=null;
+
+// ── Ringing ───────────────────────────────────────────────
+function startRinging(){
+  isRinging=true;
+  document.getElementById('ringWrap').classList.add('ringing');
+  document.getElementById('countdown').style.display='none';
+  const rm=document.getElementById('ringMsg');
+  rm.style.display='flex';rm.classList.add('show');
+  document.getElementById('dismissBtn').classList.add('show');
+  document.getElementById('snoozeBtn').classList.add('show');
+  document.getElementById('cancelBtn').style.display='none';
+  document.getElementById('targetTime').style.display='none';
+  document.getElementById('alarmLabel').textContent='⏰ '+ALARM.label;
+  arc.style.strokeDashoffset=0;
+  burst('#ff4f4f');
+  playBeep();
+  post({type:'alarmRinging',label:ALARM.label,hour:ALARM.hour,minute:ALARM.minute});
+}
+
+function stopAll(reason){
+  isRinging=false;
+  stopBeep();
+  post({type:reason,label:ALARM.label,hour:ALARM.hour,minute:ALARM.minute});
+  post({type:'closeCountdown'});
+}
+
+// Buttons
+document.getElementById('dismissBtn').addEventListener('click',e=>{
+  ripple(e.currentTarget);burst('#0b93f6');
+  setTimeout(()=>stopAll('alarmDismissed'),300);
+});
+document.getElementById('snoozeBtn').addEventListener('click',e=>{
+  ripple(e.currentTarget);burst('#00ffcc');
+  const sn=new Date();sn.setMinutes(sn.getMinutes()+5);
+  post({type:'alarmSnoozed',hour:sn.getHours(),minute:sn.getMinutes(),label:ALARM.label});
+  setTimeout(()=>stopAll('alarmSnoozed'),300);
+});
+document.getElementById('cancelBtn').addEventListener('click',e=>{
+  ripple(e.currentTarget);burst('#9aa0a6');
+  setTimeout(()=>stopAll('alarmCancelled'),300);
+});
+
+// ── Tick ──────────────────────────────────────────────────
+function tick(){
+  const now=new Date();
+  document.getElementById('liveClock').textContent=
+    pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  if(isRinging)return;
+
+  const diffSec=Math.max(0,Math.floor((targetDate-now)/1000));
+  if(diffSec===0){startRinging();return;}
+
+  const hh=Math.floor(diffSec/3600);
+  const mm=Math.floor((diffSec%3600)/60);
+  const ss=diffSec%60;
+  document.getElementById('cdTime').textContent=
+    hh>0?`${pad(hh)}:${pad(mm)}:${pad(ss)}`:`${pad(mm)}:${pad(ss)}`;
+  document.getElementById('cdLabel').textContent=diffSec<=60?'seconds left':'remaining';
+
+  // Recalculate progress based on current total duration
+  const currentTotal = (targetDate - Date.now()) / 1000;
+  const initialTotal = totalDuration;
+  const progress = initialTotal > 0 ? (initialTotal - currentTotal) / initialTotal : 0;
+  arc.style.strokeDashoffset=CIRC*(1-progress);
+}
+tick();
+setInterval(tick,1000);
+
+// ── Web Audio beep ────────────────────────────────────────
+function playBeep(){
+  try{
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    function beep(){
+      if(!audioCtx)return;
+      // Create a more realistic alarm sound with multiple frequencies
+      const now = audioCtx.currentTime;
+
+      // First beep tone - higher frequency
+      const o1 = audioCtx.createOscillator();
+      const g1 = audioCtx.createGain();
+      o1.connect(g1);
+      g1.connect(audioCtx.destination);
+      o1.frequency.value = 1000;
+      o1.type = 'sine';
+      g1.gain.setValueAtTime(0.4, now);
+      g1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      o1.start(now);
+      o1.stop(now + 0.4);
+
+      // Second tone - lower frequency for contrast
+      const o2 = audioCtx.createOscillator();
+      const g2 = audioCtx.createGain();
+      o2.connect(g2);
+      g2.connect(audioCtx.destination);
+      o2.frequency.value = 800;
+      o2.type = 'sine';
+      g2.gain.setValueAtTime(0, now + 0.2);
+      g2.gain.linearRampToValueAtTime(0.3, now + 0.25);
+      g2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      o2.start(now + 0.2);
+      o2.stop(now + 0.4);
+    }
+    beep();
+    beepInterval=setInterval(beep, 1000);
+  }catch(e){
+    console.error('Audio error:', e);
+  }
+}
+function stopBeep(){
+  if(beepInterval){clearInterval(beepInterval);beepInterval=null;}
+  if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
+}
+
+// ── C# WebView2 bridge ────────────────────────────────────
+function post(msg){
+  if(window.chrome&&window.chrome.webview)window.chrome.webview.postMessage(msg);
+}
+if(window.chrome&&window.chrome.webview){
+  window.chrome.webview.addEventListener('message',e=>{
+    if(e.data.type==='forceDismiss')stopAll('alarmDismissed');
+    if(e.data.type==='forceCancel'){stopBeep();post({type:'closeCountdown'});}
+  });
+}
+    </script>
+</body>
+</html>

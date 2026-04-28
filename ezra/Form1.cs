@@ -10,6 +10,7 @@ namespace ezra
         Font chatfont = new Font("Segoe UI", 10);
         bool games = false;
         private WebView2 webView;
+        private List<AlarmWindow> openAlarmWindows = new List<AlarmWindow>();
 
         public Form1()
         {
@@ -94,6 +95,10 @@ namespace ezra
                 {
                     HandleLaunchApp(message);
                 }
+                else if (message.Contains("openPopup"))
+                {
+                    HandleOpenPopup(message);
+                }
                 else if (message.Contains("askGames"))
                 {
                     HandleAskGames();
@@ -146,6 +151,9 @@ namespace ezra
 
         private async Task ProcessAIResponse(string response)
         {
+            Console.WriteLine($"\n=== ProcessAIResponse ===");
+            Console.WriteLine($"Raw response: {response}");
+
             // Extract and process commands from AI response
             // Look for /clock {HH:MM} and /game {2048 or ghost} patterns
 
@@ -153,20 +161,26 @@ namespace ezra
             System.Text.RegularExpressions.Regex clockRegex = new System.Text.RegularExpressions.Regex(@"/clock\s*{\s*(\d{1,2}):(\d{2})\s*}");
             var clockMatch = clockRegex.Match(response);
 
+            Console.WriteLine($"Clock regex match: {clockMatch.Success}");
+
             if (clockMatch.Success)
             {
                 string hour = clockMatch.Groups[1].Value;
                 string minute = clockMatch.Groups[2].Value;
 
+                Console.WriteLine($"? Clock command found! Hour: {hour}, Minute: {minute}");
+
                 // Remove the command from the response
                 string displayText = clockRegex.Replace(response, "").Trim();
                 if (!string.IsNullOrEmpty(displayText))
                 {
+                    Console.WriteLine($"Display text: {displayText}");
                     await SendMessageToWebAsync(displayText, isUser: false);
                 }
 
-                // Send alarm to clock interface
-                await SendAlarmToClock(hour, minute);
+                // Open the alarm popup with the time
+                Console.WriteLine($"Opening alarm popup...");
+                OpenAlarmPopupWithTime(hour, minute);
                 return;
             }
 
@@ -174,14 +188,19 @@ namespace ezra
             System.Text.RegularExpressions.Regex gameRegex = new System.Text.RegularExpressions.Regex(@"/game\s*{\s*(2048|ghost)\s*}");
             var gameMatch = gameRegex.Match(response);
 
+            Console.WriteLine($"Game regex match: {gameMatch.Success}");
+
             if (gameMatch.Success)
             {
                 string game = gameMatch.Groups[1].Value.ToLower();
+
+                Console.WriteLine($"? Game command found! Game: {game}");
 
                 // Remove the command from the response
                 string displayText = gameRegex.Replace(response, "").Trim();
                 if (!string.IsNullOrEmpty(displayText))
                 {
+                    Console.WriteLine($"Display text: {displayText}");
                     await SendMessageToWebAsync(displayText, isUser: false);
                 }
 
@@ -197,29 +216,32 @@ namespace ezra
                 return;
             }
 
+            Console.WriteLine("No commands found, displaying response as-is");
             // Default: just display the response
             await SendMessageToWebAsync(response, isUser: false);
         }
 
-        private async Task SendAlarmToClock(string hour, string minute)
+        private void OpenAlarmPopupWithTime(string hour, string minute)
         {
             try
             {
-                // Send message to clock.html to set the alarm
-                string script = $@"
-if(window.chrome && window.chrome.webview){{
-    window.chrome.webview.postMessage({{
-        type: 'setAlarm',
-        hour: {hour},
-        minute: {minute},
-        label: 'Alarm from Ezra'
-    }});
-}}";
-                await webView.CoreWebView2.ExecuteScriptAsync(script);
+                Console.WriteLine($"Opening alarm popup with time: {hour}:{minute}");
+
+                // Create and show the alarm window
+                AlarmWindow alarmWindow = new AlarmWindow(hour, minute);
+                openAlarmWindows.Add(alarmWindow);
+
+                alarmWindow.FormClosed += (s, e) =>
+                {
+                    // Remove from list when window is closed
+                    openAlarmWindows.Remove(alarmWindow);
+                };
+
+                alarmWindow.Show();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending alarm to clock: {ex.Message}");
+                Console.WriteLine($"Error opening alarm popup: {ex.Message}");
             }
         }
 
@@ -270,6 +292,134 @@ if(window.chrome && window.chrome.webview){{
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in HandleLaunchApp: {ex.Message}");
+            }
+        }
+
+        private void HandleOpenPopup(string jsonMessage)
+        {
+            try
+            {
+                using (System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(jsonMessage))
+                {
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("url", out var urlElement))
+                    {
+                        string popupUrl = urlElement.GetString();
+                        Console.WriteLine($"Opening popup: {popupUrl}");
+
+                        // Get the base directory where the HTML files are located
+                        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                        string htmlPath = Path.Combine(baseDir, popupUrl);
+
+                        // If the file doesn't exist at the base path, try looking for it
+                        if (!File.Exists(htmlPath))
+                        {
+                            // Try just the filename in the base directory
+                            string fileName = Path.GetFileName(popupUrl);
+                            htmlPath = Path.Combine(baseDir, fileName);
+                        }
+
+                        // Create and show a new form with WebView2 for the popup
+                        OpenAlarmPopupWindow(popupUrl, htmlPath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in HandleOpenPopup: {ex.Message}");
+            }
+        }
+
+        private void OpenAlarmPopupWindow(string popupUrl, string htmlPath)
+        {
+            try
+            {
+                // Create a new form for the popup window
+                Form popupForm = new Form
+                {
+                    Text = "? Alarm",
+                    Width = 500,
+                    Height = 650,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    ShowInTaskbar = true,
+                    TopMost = true,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    MaximizeBox = false,
+                    MinimizeBox = true
+                };
+
+                // Create WebView2 for the popup
+                WebView2 popupWebView = new WebView2
+                {
+                    Dock = DockStyle.Fill,
+                    CreationProperties = new CoreWebView2CreationProperties
+                    {
+                        UserDataFolder = Path.Combine(Path.GetTempPath(), "WebView2AlarmPopup")
+                    }
+                };
+
+                popupForm.Controls.Add(popupWebView);
+
+                // Initialize WebView2 asynchronously
+                popupWebView.EnsureCoreWebView2Async(null).ContinueWith(async _ =>
+                {
+                    try
+                    {
+                        // Set up message receiver for the popup
+                        popupWebView.CoreWebView2.WebMessageReceived += (sender, e) =>
+                        {
+                            string message = e.WebMessageAsJson;
+                            Console.WriteLine($"Popup Message: {message}");
+
+                            // Handle popup messages
+                            if (message.Contains("closeCountdown"))
+                            {
+                                popupForm.Invoke((MethodInvoker)(() => popupForm.Close()));
+                            }
+                        };
+
+                        // Load the HTML file
+                        if (File.Exists(htmlPath))
+                        {
+                            string htmlContent = File.ReadAllText(htmlPath);
+                            popupWebView.CoreWebView2.NavigateToString(htmlContent);
+                        }
+                        else
+                        {
+                            // If file not found, try loading from URL query string parameters
+                            string queryString = popupUrl.Contains('?') ? popupUrl.Substring(popupUrl.IndexOf('?')) : "";
+                            if (!string.IsNullOrEmpty(queryString))
+                            {
+                                // Try to find clock-popup.html in the application directory
+                                string alarmHtmlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "clock-popup.html");
+                                if (File.Exists(alarmHtmlPath))
+                                {
+                                    string htmlContent = File.ReadAllText(alarmHtmlPath);
+                                    popupWebView.CoreWebView2.NavigateToString(htmlContent);
+                                }
+                                else
+                                {
+                                    popupWebView.CoreWebView2.NavigateToString("<h1 style='color: red;'>clock-popup.html not found</h1>");
+                                }
+                            }
+                            else
+                            {
+                                popupWebView.CoreWebView2.NavigateToString("<h1 style='color: red;'>Popup file not found</h1>");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error initializing popup WebView2: {ex.Message}");
+                    }
+                });
+
+                // Show the popup form
+                popupForm.Show();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error opening alarm popup window: {ex.Message}");
             }
         }
 

@@ -553,10 +553,106 @@ function initializeClockLogic(){
         return;
       }
       const label = document.getElementById('alarmLabel').value.trim() || 'Alarm';
+
+      // Store alarm
+      let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+      const alarmId = Date.now();
+      alarms.push({
+        id: alarmId,
+        hour: h,
+        minute: m,
+        label: label,
+        enabled: true
+      });
+      localStorage.setItem('alarms', JSON.stringify(alarms));
+
       alert('Alarm set for ' + pad(h) + ':' + pad(m) + ' - ' + label);
       document.getElementById('alarmLabel').value = '';
+
+      // Start checking for alarm trigger
+      checkAlarmsInterval();
     });
   }
+
+  // Track alarm checking
+  let alarmCheckInterval = null;
+  let currentRingingAlarmId = null;
+  let popupWindow = null;
+
+  function checkAlarmsInterval(){
+    if(alarmCheckInterval) clearInterval(alarmCheckInterval);
+
+    alarmCheckInterval = setInterval(() => {
+      if(currentRingingAlarmId !== null) return; // Already ringing
+
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      const s = now.getSeconds();
+
+      if(s !== 0) return; // Check every minute at second 0
+
+      let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+      const alarm = alarms.find(a => a.enabled && a.hour === h && a.minute === m);
+
+      if(alarm){
+        currentRingingAlarmId = alarm.id;
+        openAlarmPopup(alarm);
+      }
+    }, 1000);
+  }
+
+  function openAlarmPopup(alarm){
+    const popupUrl = 'clock-popup.html?hour=' + alarm.hour + '&minute=' + alarm.minute + '&label=' + encodeURIComponent(alarm.label);
+
+    // If WebView2, use postMessage to open popup
+    if(window.chrome && window.chrome.webview){
+      window.chrome.webview.postMessage({
+        type: 'openPopup',
+        url: popupUrl,
+        title: alarm.label,
+        hour: alarm.hour,
+        minute: alarm.minute
+      });
+    } else {
+      // Fallback: try to open as regular window
+      popupWindow = window.open(popupUrl, 'AlarmPopup', 'width=500,height=600,resizable=no,menubar=no');
+    }
+  }
+
+  // Listen for popup messages
+  if(window.chrome && window.chrome.webview){
+    window.chrome.webview.addEventListener('message', e => {
+      const d = e.data;
+      if(d.type === 'alarmRinging'){
+        // Popup opened, show in main window too
+      } else if(d.type === 'alarmDismissed' || d.type === 'alarmSnoozed' || d.type === 'alarmCancelled'){
+        // Clear ringing state
+        currentRingingAlarmId = null;
+
+        if(d.type === 'alarmSnoozed'){
+          // Add new alarm 5 minutes later
+          let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+          alarms.push({
+            id: Date.now(),
+            hour: d.hour,
+            minute: d.minute,
+            label: d.label + ' (snoozed)',
+            enabled: true
+          });
+          localStorage.setItem('alarms', JSON.stringify(alarms));
+        } else if(d.type === 'alarmCancelled'){
+          // Remove the alarm
+          let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+          alarms = alarms.filter(a => a.id !== currentRingingAlarmId);
+          localStorage.setItem('alarms', JSON.stringify(alarms));
+        }
+      }
+    });
+  }
+
+  // Start alarm checking when clock is initialized
+  checkAlarmsInterval();
 }
 
 // WebView2 message handler for clock
