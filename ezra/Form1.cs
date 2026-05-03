@@ -10,6 +10,7 @@ namespace ezra
         Font chatfont = new Font("Segoe UI", 10);
         bool games = false;
         private WebView2 webView;
+        private ClockForm _clockForm;
 
         public Form1()
         {
@@ -93,6 +94,16 @@ namespace ezra
                 else if (message.Contains("launchApp"))
                 {
                     HandleLaunchApp(message);
+                }
+                else if (message.Contains("openClock"))
+                {
+                    // Open a native clock window
+                    _ = OpenClockWindow();
+                }
+                else if (message.Contains("setAlarm"))
+                {
+                    // Host should receive setAlarm requests and open/forward to native clock window
+                    HandleSetAlarm(message);
                 }
                 else if (message.Contains("askGames"))
                 {
@@ -205,17 +216,15 @@ namespace ezra
         {
             try
             {
-                // Send message to clock.html to set the alarm
-                string script = $@"
-if(window.chrome && window.chrome.webview){{
-    window.chrome.webview.postMessage({{
-        type: 'setAlarm',
-        hour: {hour},
-        minute: {minute},
-        label: 'Alarm from Ezra'
-    }});
-}}";
-                await webView.CoreWebView2.ExecuteScriptAsync(script);
+                // Open native clock window and set the alarm there
+                if (int.TryParse(hour, out int h) && int.TryParse(minute, out int m))
+                {
+                    await OpenClockAndSetAlarm(h, m, "Alarm from Ezra");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid alarm time received");
+                }
             }
             catch (Exception ex)
             {
@@ -319,6 +328,78 @@ if(window.chrome && window.chrome.webview){{
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in HandleGetJoke: {ex.Message}");
+            }
+        }
+
+        private async Task OpenClockAndSetAlarm(int hour, int minute, string label)
+        {
+            try
+            {
+                if (_clockForm == null || _clockForm.IsDisposed)
+                {
+                    _clockForm = new ClockForm();
+                    _clockForm.Show(this);
+                    await _clockForm.InitializeAsync();
+                }
+                else
+                {
+                    if (!_clockForm.Visible)
+                        _clockForm.Show(this);
+                }
+
+                await _clockForm.SetAlarmAsync(hour, minute, label);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error opening clock window: {ex.Message}");
+            }
+        }
+
+        private async Task OpenClockWindow()
+        {
+            try
+            {
+                if (_clockForm == null || _clockForm.IsDisposed)
+                {
+                    _clockForm = new ClockForm();
+                    _clockForm.Show(this);
+                    await _clockForm.InitializeAsync();
+                }
+                else
+                {
+                    if (!_clockForm.Visible)
+                        _clockForm.Show(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error opening clock window: {ex.Message}");
+            }
+        }
+
+        private void HandleSetAlarm(string jsonMessage)
+        {
+            try
+            {
+                using (System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(jsonMessage))
+                {
+                    var root = doc.RootElement;
+                    int hour = 0, minute = 0;
+                    string label = "Alarm from Ezra";
+
+                    if (root.TryGetProperty("hour", out var hEl) && hEl.TryGetInt32(out hour) &&
+                        root.TryGetProperty("minute", out var mEl) && mEl.TryGetInt32(out minute))
+                    {
+                        if (root.TryGetProperty("label", out var lEl))
+                            label = lEl.GetString() ?? label;
+
+                        _ = OpenClockAndSetAlarm(hour, minute, label);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in HandleSetAlarm: {ex.Message}");
             }
         }
 

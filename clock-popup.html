@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alarm Clock Popup</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg-1: #040b15;
+            --bg-2: #0e2035;
+            --panel: rgba(8, 17, 30, 0.9);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --text: #eff5ff;
+            --muted: #adc0d9;
+            --accent: #58b7ff;
+            --accent-strong: #1991f2;
+            --ringing: #ff7a7a;
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background:
+                radial-gradient(circle at top, rgba(88, 183, 255, 0.18), transparent 36%),
+                linear-gradient(180deg, var(--bg-1), var(--bg-2));
+            color: var(--text);
+            padding: 18px;
+        }
+
+        body.is-ringing {
+            background:
+                radial-gradient(circle at top, rgba(255, 122, 122, 0.22), transparent 36%),
+                linear-gradient(180deg, #180608, #32101a);
+        }
+
+        .app {
+            width: min(520px, 100%);
+            margin: 0 auto;
+            display: grid;
+            gap: 16px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .hero {
+            text-align: center;
+            padding: 28px 22px;
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        h1,
+        h2,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: clamp(2.8rem, 12vw, 4.6rem);
+            font-weight: 200;
+            letter-spacing: -0.08em;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        #liveDate {
+            margin-top: 10px;
+            color: var(--muted);
+        }
+
+        .section-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .section-copy {
+            margin-top: 6px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 82px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(88, 183, 255, 0.14);
+            color: var(--accent);
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        body.is-ringing .pill {
+            background: rgba(255, 122, 122, 0.16);
+            color: var(--ringing);
+        }
+
+        .ring-wrap {
+            position: relative;
+            width: min(320px, 100%);
+            aspect-ratio: 1;
+            margin: 28px auto 18px;
+        }
+
+        .ring {
+            width: 100%;
+            height: 100%;
+            display: block;
+            transform: rotate(-90deg);
+        }
+
+        .ring-track {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.08);
+            stroke-width: 12;
+        }
+
+        .ring-progress {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.2s linear, stroke 0.2s ease;
+        }
+
+        body.is-ringing .ring-progress {
+            stroke: var(--ringing);
+        }
+
+        .ring-content {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-content: center;
+            gap: 8px;
+            text-align: center;
+            padding: 28px;
+        }
+
+        .countdown-value {
+            font-size: clamp(2.8rem, 11vw, 4.4rem);
+            font-weight: 200;
+            letter-spacing: -0.08em;
+            line-height: 1;
+        }
+
+        .countdown-label {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .ring-notice {
+            margin-top: 6px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--ringing);
+        }
+
+        .button-row {
+            display: grid;
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 999px;
+            font: inherit;
+            cursor: pointer;
+            padding: 13px 18px;
+            transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #04101c;
+            font-weight: 700;
+        }
+
+        .secondary-btn {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        body.is-ringing .primary-btn {
+            background: linear-gradient(135deg, #ff9a7a, var(--ringing));
+        }
+
+        @media (max-width: 520px) {
+            body {
+                padding: 12px;
+            }
+
+            .panel {
+                padding: 18px;
+            }
+
+            .section-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="app">
+        <section class="panel hero">
+            <p class="eyebrow">Popup Clock</p>
+            <h1 id="liveClock">00:00:00</h1>
+            <p id="liveDate">Loading current time...</p>
+        </section>
+
+        <section class="panel">
+            <div class="section-row">
+                <div>
+                    <h2 id="alarmName">Waiting for alarm</h2>
+                    <p id="alarmMeta" class="section-copy">Set an alarm on the main page to start the countdown.</p>
+                </div>
+                <span id="linkBadge" class="pill">Standalone</span>
+            </div>
+
+            <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 220 220" aria-hidden="true">
+                    <circle class="ring-track" cx="110" cy="110" r="96"></circle>
+                    <circle id="ringProgress" class="ring-progress" cx="110" cy="110" r="96"></circle>
+                </svg>
+
+                <div class="ring-content">
+                    <div id="countdownValue" class="countdown-value">--:--</div>
+                    <div id="countdownLabel" class="countdown-label">No active alarm</div>
+                </div>
+            </div>
+
+            <p id="ringNotice" class="ring-notice" hidden>The alarm is ringing now.</p>
+
+            <div class="button-row">
+                <button id="dismissBtn" class="primary-btn" type="button" hidden>Dismiss</button>
+                <button id="snoozeBtn" class="secondary-btn" type="button" hidden>Snooze 5 min</button>
+                <button id="cancelBtn" class="secondary-btn" type="button" hidden>Cancel Alarm</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const liveClockEl = document.getElementById("liveClock");
+        const liveDateEl = document.getElementById("liveDate");
+        const alarmNameEl = document.getElementById("alarmName");
+        const alarmMetaEl = document.getElementById("alarmMeta");
+        const linkBadgeEl = document.getElementById("linkBadge");
+        const countdownValueEl = document.getElementById("countdownValue");
+        const countdownLabelEl = document.getElementById("countdownLabel");
+        const ringNoticeEl = document.getElementById("ringNotice");
+        const dismissBtnEl = document.getElementById("dismissBtn");
+        const snoozeBtnEl = document.getElementById("snoozeBtn");
+        const cancelBtnEl = document.getElementById("cancelBtn");
+        const ringProgressEl = document.getElementById("ringProgress");
+
+        const RADIUS = 96;
+        const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+        ringProgressEl.style.strokeDasharray = String(CIRCUMFERENCE);
+        ringProgressEl.style.strokeDashoffset = String(CIRCUMFERENCE);
+
+        let currentAlarm = null;
+        let isRinging = false;
+        let audioContext = null;
+        let beepTimer = null;
+
+        function makeId() {
+            if (window.crypto && typeof window.crypto.randomUUID === "function") {
+                return window.crypto.randomUUID();
+            }
+
+            return "alarm-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+        }
+
+        function pad(value) {
+            return String(value).padStart(2, "0");
+        }
+
+        function formatClock(date) {
+            return date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            });
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString([], {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric"
+            });
+        }
+
+        function formatTargetTime(timestamp) {
+            const target = new Date(timestamp);
+            return target.toLocaleDateString([], {
+                weekday: "long",
+                month: "short",
+                day: "numeric"
+            }) + " at " + target.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+        }
+
+        function formatCountdown(milliseconds) {
+            const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            if (hours > 0) {
+                return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds);
+            }
+
+            return pad(minutes) + ":" + pad(seconds);
+        }
+
+        function hasParentWindow() {
+            return !!(window.opener && !window.opener.closed);
+        }
+
+        function postToParent(message) {
+            if (hasParentWindow()) {
+                window.opener.postMessage(message, "*");
+            }
+
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage(message);
+            }
+        }
+
+        function updateLinkBadge() {
+            linkBadgeEl.textContent = hasParentWindow() ? "Linked" : "Standalone";
+        }
+
+        function setProgress(progress) {
+            const clamped = Math.max(0, Math.min(1, progress));
+            ringProgressEl.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - clamped));
+        }
+
+        function normalizeAlarm(rawAlarm) {
+            if (!rawAlarm || typeof rawAlarm !== "object") {
+                return null;
+            }
+
+            let triggerAt = Number(rawAlarm.triggerAt);
+            let hour = Number(rawAlarm.hour);
+            let minute = Number(rawAlarm.minute);
+
+            if (!Number.isFinite(triggerAt)) {
+                if (!Number.isInteger(hour) || !Number.isInteger(minute)) {
+                    return null;
+                }
+
+                const fallbackTarget = new Date();
+                fallbackTarget.setHours(hour, minute, 0, 0);
+
+                if (fallbackTarget.getTime() <= Date.now()) {
+                    fallbackTarget.setDate(fallbackTarget.getDate() + 1);
+                }
+
+                triggerAt = fallbackTarget.getTime();
+            } else {
+                const derivedDate = new Date(triggerAt);
+                hour = derivedDate.getHours();
+                minute = derivedDate.getMinutes();
+            }
+
+            const createdAt = Number(rawAlarm.createdAt);
+
+            return {
+                id: String(rawAlarm.id || makeId()),
+                hour,
+                minute,
+                label: String(rawAlarm.label || "Alarm"),
+                triggerAt,
+                createdAt: Number.isFinite(createdAt) ? Math.min(createdAt, triggerAt) : Date.now()
+            };
+        }
+
+        function parseInitialAlarm() {
+            const params = new URLSearchParams(window.location.search);
+            const raw = {
+                id: params.get("id"),
+                hour: params.get("hour"),
+                minute: params.get("minute"),
+                label: params.get("label"),
+                triggerAt: params.get("triggerAt"),
+                createdAt: params.get("createdAt")
+            };
+
+            return normalizeAlarm(raw);
+        }
+
+        function stopBeep() {
+            if (beepTimer) {
+                window.clearInterval(beepTimer);
+                beepTimer = null;
+            }
+
+            if (audioContext) {
+                try {
+                    audioContext.close();
+                } catch (error) {
+                    return;
+                } finally {
+                    audioContext = null;
+                }
+            }
+        }
+
+        function playBeep() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                if (audioContext.state === "suspended") {
+                    audioContext.resume();
+                }
+
+                function singleBeep() {
+                    if (!audioContext) {
+                        return;
+                    }
+
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.type = "sine";
+                    oscillator.frequency.value = 880;
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.35);
+
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.38);
+                }
+
+                singleBeep();
+                beepTimer = window.setInterval(singleBeep, 850);
+            } catch (error) {
+                return;
+            }
+        }
+
+        function updateButtons() {
+            dismissBtnEl.hidden = !isRinging;
+            snoozeBtnEl.hidden = !isRinging;
+            cancelBtnEl.hidden = !currentAlarm || isRinging;
+        }
+
+        function renderAlarmState() {
+            updateLinkBadge();
+            updateButtons();
+
+            if (!currentAlarm) {
+                document.body.classList.remove("is-ringing");
+                alarmNameEl.textContent = "Waiting for alarm";
+                alarmMetaEl.textContent = "Set an alarm on the main page to start the countdown.";
+                countdownValueEl.textContent = "--:--";
+                countdownLabelEl.textContent = "No active alarm";
+                ringNoticeEl.hidden = true;
+                setProgress(0);
+                return;
+            }
+
+            alarmNameEl.textContent = currentAlarm.label;
+            alarmMetaEl.textContent = "Scheduled for " + formatTargetTime(currentAlarm.triggerAt);
+
+            if (isRinging) {
+                document.body.classList.add("is-ringing");
+                countdownValueEl.textContent = "00:00";
+                countdownLabelEl.textContent = "Alarm ringing";
+                ringNoticeEl.hidden = false;
+                setProgress(1);
+                return;
+            }
+
+            document.body.classList.remove("is-ringing");
+            ringNoticeEl.hidden = true;
+        }
+
+        function applyAlarm(rawAlarm) {
+            stopBeep();
+            isRinging = false;
+            currentAlarm = normalizeAlarm(rawAlarm);
+            renderAlarmState();
+            updateCountdown();
+        }
+
+        function startRinging() {
+            if (!currentAlarm || isRinging) {
+                return;
+            }
+
+            isRinging = true;
+            renderAlarmState();
+            playBeep();
+            postToParent({
+                type: "ringingStarted",
+                alarmId: currentAlarm.id
+            });
+        }
+
+        function updateCountdown() {
+            updateLinkBadge();
+
+            if (!currentAlarm) {
+                return;
+            }
+
+            if (isRinging) {
+                countdownValueEl.textContent = "00:00";
+                countdownLabelEl.textContent = "Alarm ringing";
+                setProgress(1);
+                return;
+            }
+
+            const now = Date.now();
+            const difference = currentAlarm.triggerAt - now;
+
+            if (difference <= 0) {
+                startRinging();
+                return;
+            }
+
+            countdownValueEl.textContent = formatCountdown(difference);
+            countdownLabelEl.textContent = difference < 60000 ? "Less than a minute left" : "Time remaining";
+
+            const totalDuration = Math.max(1000, currentAlarm.triggerAt - currentAlarm.createdAt);
+            const elapsed = totalDuration - difference;
+            setProgress(elapsed / totalDuration);
+        }
+
+        function updateLiveClock() {
+            const now = new Date();
+            liveClockEl.textContent = formatClock(now);
+            liveDateEl.textContent = formatDate(now);
+        }
+
+        function dismissCurrentAlarm() {
+            if (!currentAlarm) {
+                return;
+            }
+
+            const alarmId = currentAlarm.id;
+            applyAlarm(null);
+            postToParent({
+                type: "dismissAlarm",
+                alarmId
+            });
+        }
+
+        function cancelCurrentAlarm() {
+            if (!currentAlarm) {
+                return;
+            }
+
+            const alarmId = currentAlarm.id;
+            applyAlarm(null);
+            postToParent({
+                type: "cancelAlarm",
+                alarmId
+            });
+        }
+
+        function snoozeCurrentAlarm() {
+            if (!currentAlarm) {
+                return;
+            }
+
+            const now = Date.now();
+            const snoozedAlarm = {
+                id: makeId(),
+                label: currentAlarm.label,
+                triggerAt: now + (5 * 60 * 1000),
+                createdAt: now
+            };
+
+            const originalAlarmId = currentAlarm.id;
+            applyAlarm(snoozedAlarm);
+
+            postToParent({
+                type: "snoozeAlarm",
+                alarmId: originalAlarmId,
+                alarm: snoozedAlarm
+            });
+        }
+
+        function announceReady() {
+            updateLinkBadge();
+            postToParent({ type: "popupReady" });
+        }
+
+        dismissBtnEl.addEventListener("click", dismissCurrentAlarm);
+        cancelBtnEl.addEventListener("click", cancelCurrentAlarm);
+        snoozeBtnEl.addEventListener("click", snoozeCurrentAlarm);
+
+        window.addEventListener("message", (event) => {
+            const data = event.data;
+
+            if (!data || typeof data !== "object") {
+                return;
+            }
+
+            if (data.type === "syncState") {
+                applyAlarm(data.alarm);
+            }
+        });
+
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.addEventListener("message", (event) => {
+                const data = event.data;
+
+                if (!data || typeof data !== "object") {
+                    return;
+                }
+
+                if (data.type === "syncState") {
+                    applyAlarm(data.alarm);
+                }
+            });
+        }
+
+        window.addEventListener("focus", announceReady);
+
+        window.addEventListener("beforeunload", () => {
+            stopBeep();
+            postToParent({ type: "popupClosed" });
+        });
+
+        currentAlarm = parseInitialAlarm();
+        renderAlarmState();
+        updateLiveClock();
+        updateCountdown();
+        announceReady();
+
+        window.setInterval(updateLiveClock, 1000);
+        window.setInterval(updateCountdown, 250);
+    </script>
+</body>
+</html>

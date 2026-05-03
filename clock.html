@@ -753,36 +753,6 @@
             liveDateEl.textContent = formatDate(now);
         }
 
-        function receiveExternalAlarm(data) {
-            if (!data || typeof data !== "object") {
-                return;
-            }
-
-            const hour = Number(data.hour);
-            const minute = Number(data.minute);
-
-            if (!Number.isInteger(hour) || hour < 0 || hour > 23 || !Number.isInteger(minute) || minute < 0 || minute > 59) {
-                return;
-            }
-
-            const label = String(data.label || "Alarm");
-
-            hourInputEl.value = pad(hour);
-            minuteInputEl.value = pad(minute);
-            labelInputEl.value = label;
-
-            createAlarm(hour, minute, label);
-
-            const popup = ensurePopup(true);
-            if (popup) {
-                popup.focus();
-                schedulePopupSync();
-            }
-
-            clearForm();
-            renderPopupStatus();
-        }
-
         function handleFormSubmit(event) {
             event.preventDefault();
 
@@ -808,8 +778,6 @@
             renderPopupStatus();
         }
 
-        window.receiveExternalAlarm = receiveExternalAlarm;
-
         alarmFormEl.addEventListener("submit", handleFormSubmit);
 
         openPopupBtnEl.addEventListener("click", () => {
@@ -829,16 +797,6 @@
         minuteInputEl.addEventListener("blur", () => {
             clampInputValue(minuteInputEl, 59);
         });
-
-        if (window.chrome && window.chrome.webview) {
-            window.chrome.webview.addEventListener("message", (event) => {
-                const data = event.data;
-
-                if (data && data.type === "setAlarm") {
-                    receiveExternalAlarm(data);
-                }
-            });
-        }
 
         alarmListEl.addEventListener("click", (event) => {
             const button = event.target.closest("button");

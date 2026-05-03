@@ -14,7 +14,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="chat.html">
+    <Compile Remove="Form1.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="chat.html;clock.html;clock-popup.html;chat-backup.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

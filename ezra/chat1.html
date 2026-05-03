@@ -134,82 +134,6 @@ body.light #userInput:focus{border-color:#0b93f6;}
 body.light #themeToggle{color:#202124;border-color:#bbb;}
 body.light #themeToggle:hover{background:#ddd;}
 
-.games-dialog{
-  border:none;
-  padding:0;
-  width:min(420px,calc(100vw - 28px));
-  max-height:min(80vh,620px);
-  border-radius:24px;
-  background:#202124;
-  color:#e8eaed;
-  box-shadow:0 24px 70px rgba(0,0,0,.45);
-}
-.games-dialog::backdrop{background:rgba(0,0,0,.55);}
-body.light .games-dialog{background:#f0f0f0;color:#202124;}
-
-.games-dialog-card{
-  display:flex;flex-direction:column;gap:14px;
-  padding:20px;
-}
-
-.games-dialog-header{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-}
-
-.games-dialog-title{
-  font-size:20px;font-weight:600;
-}
-
-.games-dialog-close{
-  width:38px;height:38px;border-radius:50%;border:1px solid #444;
-  background:transparent;color:#e8eaed;cursor:pointer;font-size:18px;
-  display:flex;align-items:center;justify-content:center;
-}
-.games-dialog-close:hover{background:#303134;}
-body.light .games-dialog-close{color:#202124;border-color:#bbb;}
-body.light .games-dialog-close:hover{background:#ddd;}
-
-.games-dialog-text{
-  color:#9aa0a6;font-size:14px;line-height:1.5;
-}
-body.light .games-dialog-text{color:#5f6368;}
-
-.games-dialog-list{
-  display:flex;flex-direction:column;gap:10px;
-  max-height:340px;overflow-y:auto;padding-right:2px;
-}
-
-.game-option-btn{
-  width:100%;padding:14px 16px;border-radius:18px;border:1px solid #444;
-  background:#2a2a2e;color:#e8eaed;cursor:pointer;text-align:left;
-  display:flex;flex-direction:column;gap:4px;
-  transition:all .2s;
-}
-.game-option-btn:hover{background:#3a3a3e;border-color:#0b93f6;transform:translateY(-1px);}
-body.light .game-option-btn{background:#fff;border-color:#ccc;color:#202124;}
-body.light .game-option-btn:hover{background:#f5f5f5;border-color:#0b93f6;}
-
-.game-option-name{
-  font-size:15px;font-weight:600;
-}
-
-.game-option-desc{
-  color:#9aa0a6;font-size:13px;line-height:1.4;
-}
-body.light .game-option-desc{color:#5f6368;}
-
-.games-dialog-actions{
-  display:flex;justify-content:flex-end;
-}
-
-.games-dialog-cancel{
-  padding:10px 16px;border-radius:20px;border:1px solid #444;
-  background:#2a2a2e;color:#e8eaed;cursor:pointer;font-size:14px;
-}
-.games-dialog-cancel:hover{background:#3a3a3e;border-color:#0b93f6;}
-body.light .games-dialog-cancel{background:#fff;border-color:#ccc;color:#202124;}
-body.light .games-dialog-cancel:hover{background:#f5f5f5;border-color:#0b93f6;}
-
 /* Responsive tweaks */
 @media(max-width:480px){
   .message{max-width:88%;font-size:14px;}
@@ -226,20 +150,6 @@ body.light .games-dialog-cancel:hover{background:#f5f5f5;border-color:#0b93f6;}
 <canvas id="canvas"></canvas>
 <div id="chatContainer"></div>
 <div id="clockContainer" style="display:none;"></div>
-
-<dialog id="gamesDialog" class="games-dialog">
-  <div class="games-dialog-card">
-    <div class="games-dialog-header">
-      <div class="games-dialog-title">Pick a game</div>
-      <button id="closeGamesDialogBtn" class="games-dialog-close" type="button">×</button>
-    </div>
-    <div id="gamesDialogText" class="games-dialog-text">Choose a game from the list.</div>
-    <div id="gamesDialogList" class="games-dialog-list"></div>
-    <div class="games-dialog-actions">
-      <button id="cancelGamesDialogBtn" class="games-dialog-cancel" type="button">Cancel</button>
-    </div>
-  </div>
-</dialog>
 
 <div id="buttonsContainer">
   <button class="action-btn" id="clockBtn">⏰ שעון מעורר</button>
@@ -272,11 +182,6 @@ const clockBtn      = document.getElementById('clockBtn');
 const spotifyBtn    = document.getElementById('spotifyBtn');
 const gameBtn       = document.getElementById('gameBtn');
 const jokeBtn       = document.getElementById('jokeBtn');
-const gamesDialog   = document.getElementById('gamesDialog');
-const gamesDialogList = document.getElementById('gamesDialogList');
-const gamesDialogText = document.getElementById('gamesDialogText');
-const closeGamesDialogBtn = document.getElementById('closeGamesDialogBtn');
-const cancelGamesDialogBtn = document.getElementById('cancelGamesDialogBtn');
 const canvas        = document.getElementById('canvas');
 const ctx           = canvas.getContext('2d');
 
@@ -483,114 +388,6 @@ function hideTypingIndicator(){
   }
 }
 
-function closeGamesDialog(){
-  if(gamesDialog.open){
-    gamesDialog.close();
-  }
-}
-
-function normalizeGamesPayload(payload){
-  let list = [];
-
-  if(Array.isArray(payload)){
-    list = payload;
-  } else if(payload && Array.isArray(payload.games)){
-    list = payload.games;
-  } else if(payload && Array.isArray(payload.items)){
-    list = payload.items;
-  } else if(payload && typeof payload.games === 'string'){
-    list = payload.games.split(/\r?\n|,/);
-  } else if(typeof payload === 'string'){
-    list = payload.split(/\r?\n|,/);
-  }
-
-  return list
-    .map((item, index) => {
-      if(typeof item === 'string'){
-        const label = item.trim();
-        if(!label) return null;
-        return {
-          id: 'game-' + index,
-          label,
-          description: ''
-        };
-      }
-
-      if(item && typeof item === 'object'){
-        const label = String(item.label || item.name || item.title || item.game || '').trim();
-        if(!label) return null;
-        return {
-          id: String(item.id || item.key || item.name || ('game-' + index)),
-          label,
-          description: String(item.description || item.summary || '').trim()
-        };
-      }
-
-      return null;
-    })
-    .filter(Boolean);
-}
-
-function pickGame(game){
-  closeGamesDialog();
-  addMessage('בחרתי את ' + game.label, true);
-
-  if(window.chrome && window.chrome.webview){
-    window.chrome.webview.postMessage({
-      type: 'launchGame',
-      id: game.id,
-      game: game.label,
-      name: game.label
-    });
-  }
-}
-
-function showGamesDialog(payload){
-  console.log('showGamesDialog called', payload);
-  hideTypingIndicator();
-
-  const games = normalizeGamesPayload(payload);
-  gamesDialogList.innerHTML = '';
-
-  if(!games.length){
-    addMessage('לא מצאתי משחקים זמינים כרגע.', false);
-    return;
-  }
-
-  gamesDialogText.textContent = 'Choose a game from the list.';
-
-  games.forEach((game) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'game-option-btn';
-
-    const name = document.createElement('span');
-    name.className = 'game-option-name';
-    name.textContent = game.label;
-    btn.appendChild(name);
-
-    if(game.description){
-      const desc = document.createElement('span');
-      desc.className = 'game-option-desc';
-      desc.textContent = game.description;
-      btn.appendChild(desc);
-    }
-
-    btn.addEventListener('click', () => pickGame(game));
-    gamesDialogList.appendChild(btn);
-  });
-
-  if(typeof gamesDialog.showModal === 'function'){
-    if(gamesDialog.open) gamesDialog.close();
-    gamesDialog.showModal();
-  } else {
-    gamesDialog.setAttribute('open', 'open');
-  }
-}
-
-closeGamesDialogBtn.addEventListener('click', closeGamesDialog);
-cancelGamesDialogBtn.addEventListener('click', closeGamesDialog);
-
 sendBtn.addEventListener('click', () => {
   console.log('Send button clicked');
   doSend();
@@ -607,7 +404,7 @@ userInput.addEventListener('keydown', (e) => {
 // ── Action Button Handlers ───────────────────────────────
 clockBtn.addEventListener('click', () => {
   console.log('Clock button clicked');
-  window.location.href = 'clock.html';
+  toggleClockView();
 });
 
 spotifyBtn.addEventListener('click', () => {
@@ -659,7 +456,7 @@ function toggleClockView(){
     btnDiv.style.display='flex';
     clockDiv.style.display='none';
   }
-}   
+}
 
 // Initialize clock
 function initializeClock(){
@@ -674,7 +471,7 @@ function initializeClock(){
       </div>
       <div id="clockFace" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 32px;border-radius:24px;border:1px solid #383838;background:#2a2a2e;width:100%;">
         <div id="clock" style="font-size:64px;font-weight:200;letter-spacing:-2px;">00:00:00</div>
-        <div id=" date" style="font-size:14px;color:#9aa0a6;"></div>
+        <div id="date" style="font-size:14px;color:#9aa0a6;"></div>
       </div>
       <div id="alertBar" style="width:100%;border-radius:20px;padding:18px 24px;border:1px solid #0b93f6;background:#1a1f2e;display:none;flex-direction:column;gap:12px;align-items:center;">
         <div id="alertMsg" style="font-size:17px;font-weight:500;color:#e8eaed;">⏰ Alarm!</div>
@@ -767,22 +564,6 @@ if(window.chrome && window.chrome.webview){
   const originalListener = window.chrome.webview.addEventListener;
   window.chrome.webview.addEventListener('message', e => {
     const d = e.data;
-    if(
-      d &&
-      (
-        Array.isArray(d) ||
-        d.type === 'gamesList' ||
-        d.type === 'showGamesDialog' ||
-        d.type === 'askGamesResult' ||
-        Array.isArray(d.games) ||
-        Array.isArray(d.items) ||
-        Array.isArray(d.list)
-      )
-    ){
-      showGamesDialog(d.games || d.items || d.list || d);
-      return;
-    }
-
     if(d.type === 'setAlarm' && d.hour != null && d.minute != null){
       setTimeout(() => {
         const hourInput = document.getElementById('hourInput');
@@ -816,8 +597,6 @@ if(window.chrome && window.chrome.webview){
     }
   });
 }
-
-window.showGamesDialog = showGamesDialog;
 </script>
 </body>
 </html>
