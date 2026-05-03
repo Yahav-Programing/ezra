@@ -415,7 +415,7 @@ namespace ezra
 
             if (normalized.Contains("ghost"))
             {
-                LaunchResolvedApp(Path.Combine("Data", "client-ghost-game", "client-side ghost game.exe"));
+                LaunchResolvedApp(Path.Combine("Data", "ghost-game", "client-side ghost game.exe"));
             }
         }
 
