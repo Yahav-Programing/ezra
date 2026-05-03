@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Chat</title>
+<title>עזרא - צ'אט</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;width:100%;overflow:hidden;}
@@ -230,13 +230,13 @@ body.light .games-dialog-cancel:hover{background:#f5f5f5;border-color:#0b93f6;}
 <dialog id="gamesDialog" class="games-dialog">
   <div class="games-dialog-card">
     <div class="games-dialog-header">
-      <div class="games-dialog-title">Pick a game</div>
+      <div class="games-dialog-title">בחירת משחק</div>
       <button id="closeGamesDialogBtn" class="games-dialog-close" type="button">×</button>
     </div>
-    <div id="gamesDialogText" class="games-dialog-text">Choose a game from the list.</div>
+    <div id="gamesDialogText" class="games-dialog-text">בחרו משחק מהרשימה.</div>
     <div id="gamesDialogList" class="games-dialog-list"></div>
     <div class="games-dialog-actions">
-      <button id="cancelGamesDialogBtn" class="games-dialog-cancel" type="button">Cancel</button>
+      <button id="cancelGamesDialogBtn" class="games-dialog-cancel" type="button">ביטול</button>
     </div>
   </div>
 </dialog>
@@ -249,7 +249,7 @@ body.light .games-dialog-cancel:hover{background:#f5f5f5;border-color:#0b93f6;}
 </div>
 
 <div id="inputContainer">
-  <input type="text" id="userInput" placeholder="Type a message…"/>
+  <input type="text" id="userInput" placeholder="כתבו הודעה..."/>
   <button id="sendBtn">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="2.5"
@@ -557,7 +557,7 @@ function showGamesDialog(payload){
     return;
   }
 
-  gamesDialogText.textContent = 'Choose a game from the list.';
+  gamesDialogText.textContent = 'בחרו משחק מהרשימה.';
 
   games.forEach((game) => {
     const btn = document.createElement('button');
@@ -677,22 +677,22 @@ function initializeClock(){
         <div id=" date" style="font-size:14px;color:#9aa0a6;"></div>
       </div>
       <div id="alertBar" style="width:100%;border-radius:20px;padding:18px 24px;border:1px solid #0b93f6;background:#1a1f2e;display:none;flex-direction:column;gap:12px;align-items:center;">
-        <div id="alertMsg" style="font-size:17px;font-weight:500;color:#e8eaed;">⏰ Alarm!</div>
+        <div id="alertMsg" style="font-size:17px;font-weight:500;color:#e8eaed;">⏰ השעון מצלצל!</div>
         <div id="alertTime" style="font-size:28px;font-weight:200;color:#0b93f6;"></div>
         <div style="display:flex;gap:10px;width:100%;">
-          <button id="snoozeBtn" style="flex:1;padding:12px;border-radius:14px;border:none;background:#303134;color:#e8eaed;cursor:pointer;">Snooze 5 min</button>
-          <button id="dismissBtn" style="flex:1;padding:12px;border-radius:14px;border:none;background:#0b93f6;color:#fff;cursor:pointer;">Dismiss</button>
+          <button id="snoozeBtn" style="flex:1;padding:12px;border-radius:14px;border:none;background:#303134;color:#e8eaed;cursor:pointer;">נודניק 5 דק'</button>
+          <button id="dismissBtn" style="flex:1;padding:12px;border-radius:14px;border:none;background:#0b93f6;color:#fff;cursor:pointer;">כיבוי</button>
         </div>
       </div>
       <div id="setCard" style="width:100%;border-radius:20px;padding:20px 24px;border:1px solid #383838;background:#2a2a2e;display:flex;flex-direction:column;gap:16px;">
-        <span style="font-size:12px;color:#9aa0a6;">New Alarm</span>
+        <span style="font-size:12px;color:#9aa0a6;">שעון חדש</span>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
           <input id="hourInput" type="number" min="0" max="23" value="07" style="font-size:32px;width:64px;border:none;background:transparent;color:#e8eaed;text-align:center;border-bottom:1px solid #555;outline:none;" />
           <span style="font-size:28px;color:#555;">:</span>
           <input id="minInput" type="number" min="0" max="59" value="00" style="font-size:32px;width:64px;border:none;background:transparent;color:#e8eaed;text-align:center;border-bottom:1px solid #555;outline:none;" />
         </div>
-        <input id="alarmLabel" type="text" placeholder="Label…" maxlength="40" style="width:100%;padding:10px 14px;border-radius:12px;border:1px solid #444;background:#303134;color:#e8eaed;outline:none;" />
-        <button id="setBtn" style="width:100%;padding:14px;border-radius:25px;border:none;background:#0b93f6;color:#fff;cursor:pointer;font-weight:500;">Set Alarm</button>
+        <input id="alarmLabel" type="text" placeholder="תווית..." maxlength="40" style="width:100%;padding:10px 14px;border-radius:12px;border:1px solid #444;background:#303134;color:#e8eaed;outline:none;" />
+        <button id="setBtn" style="width:100%;padding:14px;border-radius:25px;border:none;background:#0b93f6;color:#fff;cursor:pointer;font-weight:500;">שמירת שעון</button>
       </div>
       <div id="alarmList" style="width:100%;display:flex;flex-direction:column;gap:10px;"></div>
     </div>`;
@@ -734,8 +734,8 @@ function initializeClockLogic(){
 
     if(clockEl) clockEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
     if(dateEl) {
-      const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const days=['יום ראשון','יום שני','יום שלישי','יום רביעי','יום חמישי','יום שישי','יום שבת'];
+      const months=['ינו׳','פבר׳','מרץ','אפר׳','מאי','יוני','יולי','אוג׳','ספט׳','אוק׳','נוב׳','דצמ׳'];
       dateEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
     }
   }
@@ -752,11 +752,11 @@ function initializeClockLogic(){
       const h = parseInt(document.getElementById('hourInput').value, 10);
       const m = parseInt(document.getElementById('minInput').value, 10);
       if(isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59){
-        alert('Please enter a valid time.');
+        alert('יש להזין שעה תקינה.');
         return;
       }
-      const label = document.getElementById('alarmLabel').value.trim() || 'Alarm';
-      alert('Alarm set for ' + pad(h) + ':' + pad(m) + ' - ' + label);
+      const label = document.getElementById('alarmLabel').value.trim() || 'שעון מעורר';
+      alert('השעון הוגדר ל-' + pad(h) + ':' + pad(m) + ' - ' + label);
       document.getElementById('alarmLabel').value = '';
     });
   }

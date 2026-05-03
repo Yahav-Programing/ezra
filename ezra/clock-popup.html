@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alarm Clock Popup</title>
+    <title>עזרא - שעון קופץ</title>
     <style>
         :root {
             color-scheme: dark;
@@ -245,18 +245,18 @@
 <body>
     <main class="app">
         <section class="panel hero">
-            <p class="eyebrow">Popup Clock</p>
+            <p class="eyebrow">שעון קופץ</p>
             <h1 id="liveClock">00:00:00</h1>
-            <p id="liveDate">Loading current time...</p>
+            <p id="liveDate">טוען שעה נוכחית...</p>
         </section>
 
         <section class="panel">
             <div class="section-row">
                 <div>
-                    <h2 id="alarmName">Waiting for alarm</h2>
-                    <p id="alarmMeta" class="section-copy">Set an alarm on the main page to start the countdown.</p>
+                    <h2 id="alarmName">ממתין לשעון</h2>
+                    <p id="alarmMeta" class="section-copy">יש להגדיר שעון בעמוד הראשי כדי להתחיל את הספירה לאחור.</p>
                 </div>
-                <span id="linkBadge" class="pill">Standalone</span>
+                <span id="linkBadge" class="pill">עצמאי</span>
             </div>
 
             <div class="ring-wrap">
@@ -267,16 +267,16 @@
 
                 <div class="ring-content">
                     <div id="countdownValue" class="countdown-value">--:--</div>
-                    <div id="countdownLabel" class="countdown-label">No active alarm</div>
+                    <div id="countdownLabel" class="countdown-label">אין שעון פעיל</div>
                 </div>
             </div>
 
-            <p id="ringNotice" class="ring-notice" hidden>The alarm is ringing now.</p>
+            <p id="ringNotice" class="ring-notice" hidden>השעון מצלצל עכשיו.</p>
 
             <div class="button-row">
-                <button id="dismissBtn" class="primary-btn" type="button" hidden>Dismiss</button>
-                <button id="snoozeBtn" class="secondary-btn" type="button" hidden>Snooze 5 min</button>
-                <button id="cancelBtn" class="secondary-btn" type="button" hidden>Cancel Alarm</button>
+                <button id="dismissBtn" class="primary-btn" type="button" hidden>כיבוי</button>
+                <button id="snoozeBtn" class="secondary-btn" type="button" hidden>נודניק 5 דק'</button>
+                <button id="cancelBtn" class="secondary-btn" type="button" hidden>ביטול שעון</button>
             </div>
         </section>
     </main>
@@ -318,7 +318,7 @@
         }
 
         function formatClock(date) {
-            return date.toLocaleTimeString([], {
+            return date.toLocaleTimeString("he-IL", {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
@@ -327,7 +327,7 @@
         }
 
         function formatDate(date) {
-            return date.toLocaleDateString([], {
+            return date.toLocaleDateString("he-IL", {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
@@ -337,11 +337,11 @@
 
         function formatTargetTime(timestamp) {
             const target = new Date(timestamp);
-            return target.toLocaleDateString([], {
+            return target.toLocaleDateString("he-IL", {
                 weekday: "long",
                 month: "short",
                 day: "numeric"
-            }) + " at " + target.toLocaleTimeString([], {
+            }) + " בשעה " + target.toLocaleTimeString("he-IL", {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: false
@@ -376,7 +376,7 @@
         }
 
         function updateLinkBadge() {
-            linkBadgeEl.textContent = hasParentWindow() ? "Linked" : "Standalone";
+            linkBadgeEl.textContent = hasParentWindow() ? "מחובר" : "עצמאי";
         }
 
         function setProgress(progress) {
@@ -418,7 +418,7 @@
                 id: String(rawAlarm.id || makeId()),
                 hour,
                 minute,
-                label: String(rawAlarm.label || "Alarm"),
+                label: String(rawAlarm.label || "שעון מעורר"),
                 triggerAt,
                 createdAt: Number.isFinite(createdAt) ? Math.min(createdAt, triggerAt) : Date.now()
             };
@@ -502,22 +502,22 @@
 
             if (!currentAlarm) {
                 document.body.classList.remove("is-ringing");
-                alarmNameEl.textContent = "Waiting for alarm";
-                alarmMetaEl.textContent = "Set an alarm on the main page to start the countdown.";
+                alarmNameEl.textContent = "ממתין לשעון";
+                alarmMetaEl.textContent = "יש להגדיר שעון בעמוד הראשי כדי להתחיל את הספירה לאחור.";
                 countdownValueEl.textContent = "--:--";
-                countdownLabelEl.textContent = "No active alarm";
+                countdownLabelEl.textContent = "אין שעון פעיל";
                 ringNoticeEl.hidden = true;
                 setProgress(0);
                 return;
             }
 
             alarmNameEl.textContent = currentAlarm.label;
-            alarmMetaEl.textContent = "Scheduled for " + formatTargetTime(currentAlarm.triggerAt);
+            alarmMetaEl.textContent = "מתוזמן ל-" + formatTargetTime(currentAlarm.triggerAt);
 
             if (isRinging) {
                 document.body.classList.add("is-ringing");
                 countdownValueEl.textContent = "00:00";
-                countdownLabelEl.textContent = "Alarm ringing";
+                countdownLabelEl.textContent = "השעון מצלצל";
                 ringNoticeEl.hidden = false;
                 setProgress(1);
                 return;
@@ -558,7 +558,7 @@
 
             if (isRinging) {
                 countdownValueEl.textContent = "00:00";
-                countdownLabelEl.textContent = "Alarm ringing";
+                countdownLabelEl.textContent = "השעון מצלצל";
                 setProgress(1);
                 return;
             }
@@ -572,7 +572,7 @@
             }
 
             countdownValueEl.textContent = formatCountdown(difference);
-            countdownLabelEl.textContent = difference < 60000 ? "Less than a minute left" : "Time remaining";
+            countdownLabelEl.textContent = difference < 60000 ? "נשארה פחות מדקה" : "הזמן שנותר";
 
             const totalDuration = Math.max(1000, currentAlarm.triggerAt - currentAlarm.createdAt);
             const elapsed = totalDuration - difference;

@@ -12,7 +12,7 @@ namespace ezra
 
         public ClockForm()
         {
-            Text = "Ezra - Clock";
+            Text = "עזרא - שעון";
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(460, 760);
             MinimizeBox = false;

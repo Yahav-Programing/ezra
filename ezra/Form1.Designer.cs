@@ -198,7 +198,7 @@
             Controls.Add(pnllogo);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
-            Text = "עזרא - AI Assistant";
+            Text = "עזרא - עוזר AI";
             Load += Form1_Load;
             pnllogo.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();

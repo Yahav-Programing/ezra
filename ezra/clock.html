@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Alarm Clock Control</title>
+    <title>ניהול שעון מעורר</title>
     <style>
         :root {
             color-scheme: dark;
@@ -96,6 +96,11 @@
             justify-content: space-between;
             gap: 14px;
             margin-bottom: 18px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: flex-start;
         }
 
         .section-copy {
@@ -327,58 +332,61 @@
 </head>
 <body>
     <main class="app">
+        <div class="topbar">
+            <button id="backBtn" class="ghost-btn" type="button">חזרה לצ'אט</button>
+        </div>
+
         <section class="panel hero">
-            <p class="eyebrow">Browser Alarm Clock</p>
+            <p class="eyebrow">שעון מעורר</p>
             <h1 id="liveClock">00:00:00</h1>
-            <p id="liveDate">Loading current time...</p>
+            <p id="liveDate">טוען שעה נוכחית...</p>
         </section>
 
         <section class="panel">
             <div class="section-row">
                 <div>
-                    <h2>Set Alarm</h2>
-                    <p class="section-copy">Create an alarm and open the popup clock window.</p>
+                    <h2>הגדרת שעון מעורר</h2>
+                    <p class="section-copy">יוצרים שעון מעורר, והחלון הקופץ נפתח אוטומטית.</p>
                 </div>
-                <button id="openPopupBtn" class="ghost-btn" type="button">Open Popup Clock</button>
             </div>
 
             <form id="alarmForm" class="alarm-form" novalidate>
                 <div class="time-row">
                     <label class="field">
-                        <span>Hour</span>
+                        <span>שעה</span>
                         <input id="hourInput" type="number" min="0" max="23" value="07" required />
                     </label>
 
                     <div class="colon">:</div>
 
                     <label class="field">
-                        <span>Minute</span>
+                        <span>דקה</span>
                         <input id="minuteInput" type="number" min="0" max="59" value="00" required />
                     </label>
                 </div>
 
                 <label class="field">
-                    <span>Label</span>
-                    <input id="labelInput" type="text" maxlength="40" placeholder="Wake up" />
+                    <span>תווית</span>
+                    <input id="labelInput" type="text" maxlength="40" placeholder="לקום" />
                 </label>
 
-                <button class="primary-btn" type="submit">Save Alarm and Open Popup</button>
+                <button class="primary-btn" type="submit">שמירת שעון ופתיחת חלון קופץ</button>
             </form>
 
-            <p id="popupStatus" class="status">The popup clock will open when you save an alarm.</p>
+            <p id="popupStatus" class="status">החלון הקופץ ייפתח אוטומטית כשתשמור שעון.</p>
         </section>
 
         <section class="panel">
             <div class="section-row">
                 <div>
-                    <h2>Saved Alarms</h2>
-                    <p class="section-copy">The popup always shows the next enabled alarm.</p>
+                    <h2>שעונים שמורים</h2>
+                    <p class="section-copy">החלון הקופץ מציג תמיד את השעון הפעיל הבא.</p>
                 </div>
                 <span id="alarmCount" class="pill">0</span>
             </div>
 
             <div id="alarmList" class="alarm-list"></div>
-            <p id="emptyState" class="empty-state">No alarms yet.</p>
+            <p id="emptyState" class="empty-state">אין שעונים עדיין.</p>
         </section>
     </main>
 
@@ -396,7 +404,7 @@
         const hourInputEl = document.getElementById("hourInput");
         const minuteInputEl = document.getElementById("minuteInput");
         const labelInputEl = document.getElementById("labelInput");
-        const openPopupBtnEl = document.getElementById("openPopupBtn");
+        const backBtnEl = document.getElementById("backBtn");
 
         let alarms = loadAlarms();
         let popupWindow = null;
@@ -424,7 +432,7 @@
         }
 
         function formatClock(date) {
-            return date.toLocaleTimeString([], {
+            return date.toLocaleTimeString("he-IL", {
                 hour: "2-digit",
                 minute: "2-digit",
                 second: "2-digit",
@@ -433,7 +441,7 @@
         }
 
         function formatDate(date) {
-            return date.toLocaleDateString([], {
+            return date.toLocaleDateString("he-IL", {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
@@ -451,25 +459,25 @@
             const tomorrow = new Date(now);
             tomorrow.setDate(now.getDate() + 1);
 
-            let dayLabel = target.toLocaleDateString([], {
+            let dayLabel = target.toLocaleDateString("he-IL", {
                 weekday: "short",
                 month: "short",
                 day: "numeric"
             });
 
             if (target.toDateString() === now.toDateString()) {
-                dayLabel = "Today";
+                dayLabel = "היום";
             } else if (target.toDateString() === tomorrow.toDateString()) {
-                dayLabel = "Tomorrow";
+                dayLabel = "מחר";
             }
 
-            const timeLabel = target.toLocaleTimeString([], {
+            const timeLabel = target.toLocaleTimeString("he-IL", {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: false
             });
 
-            return dayLabel + " at " + timeLabel;
+            return dayLabel + " בשעה " + timeLabel;
         }
 
         function getNextTriggerAt(hour, minute) {
@@ -494,7 +502,7 @@
                         id: String(alarm.id || makeId()),
                         hour: Number(alarm.hour),
                         minute: Number(alarm.minute),
-                        label: String(alarm.label || "Alarm"),
+                        label: String(alarm.label || "שעון מעורר"),
                         triggerAt: Number(alarm.triggerAt),
                         createdAt: Number(alarm.createdAt || Date.now()),
                         enabled: alarm.enabled !== false
@@ -597,7 +605,7 @@
             );
 
             if (!popupWindow) {
-                popupStatusEl.textContent = "Alarm saved, but the browser blocked the popup. Allow popups for this page.";
+                popupStatusEl.textContent = "השעון נשמר, אבל הדפדפן חסם את החלון הקופץ. צריך לאפשר חלונות קופצים לעמוד הזה.";
                 return null;
             }
 
@@ -641,21 +649,21 @@
 
             if (!popupOpen) {
                 popupStatusEl.textContent = nextAlarm
-                    ? "Next alarm is " + formatDueTime(nextAlarm.triggerAt) + ". Use Open Popup Clock if you close the popup."
-                    : "The popup clock will open when you save an alarm.";
+                    ? "השעון הבא מוגדר ל-" + formatDueTime(nextAlarm.triggerAt) + ". החלון הקופץ ייפתח אוטומטית כשצריך."
+                    : "החלון הקופץ ייפתח אוטומטית כשתשמור שעון.";
                 return;
             }
 
             if (!nextAlarm) {
                 popupStatusEl.textContent = popupReady
-                    ? "Popup clock is open and waiting for the next alarm."
-                    : "Popup clock is opening.";
+                    ? "חלון השעון פתוח ומחכה לשעון הבא."
+                    : "חלון השעון נפתח.";
                 return;
             }
 
             popupStatusEl.textContent = popupReady
-                ? "Popup clock is synced to " + nextAlarm.label + " for " + formatDueTime(nextAlarm.triggerAt) + "."
-                : "Popup clock is opening for " + nextAlarm.label + ".";
+                ? "חלון השעון מסונכרן עם " + nextAlarm.label + " ל-" + formatDueTime(nextAlarm.triggerAt) + "."
+                : "חלון השעון נפתח עבור " + nextAlarm.label + ".";
         }
 
         function renderAlarms() {
@@ -669,12 +677,12 @@
                 const card = document.createElement("article");
                 card.className = "alarm-card" + (alarm.enabled ? "" : " is-disabled");
 
-                const badge = nextAlarm && nextAlarm.id === alarm.id ? '<span class="mini-pill">Next</span>' : "";
+                const badge = nextAlarm && nextAlarm.id === alarm.id ? '<span class="mini-pill">הבא</span>' : "";
                 const metaLabel = alarm.enabled
-                    ? "Scheduled for " + formatDueTime(alarm.triggerAt)
+                    ? "מתוזמן ל-" + formatDueTime(alarm.triggerAt)
                     : alarm.triggerAt <= Date.now()
-                        ? "Expired"
-                        : "Disabled";
+                        ? "עבר"
+                        : "מושבת";
 
                 card.innerHTML = `
                     <div class="alarm-copy">
@@ -687,10 +695,10 @@
                     </div>
                     <div class="alarm-actions">
                         <button class="mini-btn" type="button" data-action="toggle" data-id="${alarm.id}">
-                            ${alarm.enabled ? "Disable" : "Enable"}
+                            ${alarm.enabled ? "כיבוי" : "הפעלה"}
                         </button>
                         <button class="mini-btn danger" type="button" data-action="delete" data-id="${alarm.id}">
-                            Delete
+                            מחיקה
                         </button>
                     </div>
                 `;
@@ -765,7 +773,7 @@
                 return;
             }
 
-            const label = String(data.label || "Alarm");
+            const label = String(data.label || "שעון מעורר");
 
             hourInputEl.value = pad(hour);
             minuteInputEl.value = pad(minute);
@@ -790,11 +798,11 @@
             const minute = Number(minuteInputEl.value);
 
             if (!Number.isInteger(hour) || hour < 0 || hour > 23 || !Number.isInteger(minute) || minute < 0 || minute > 59) {
-                window.alert("Enter a valid hour between 0 and 23 and a valid minute between 0 and 59.");
+                window.alert("יש להזין שעה תקינה בין 0 ל-23 ודקה תקינה בין 0 ל-59.");
                 return;
             }
 
-            const label = labelInputEl.value.trim() || "Alarm";
+            const label = labelInputEl.value.trim() || "שעון מעורר";
 
             createAlarm(hour, minute, label);
 
@@ -812,14 +820,8 @@
 
         alarmFormEl.addEventListener("submit", handleFormSubmit);
 
-        openPopupBtnEl.addEventListener("click", () => {
-            const popup = ensurePopup(true);
-
-            if (popup) {
-                popup.focus();
-                schedulePopupSync();
-                renderPopupStatus();
-            }
+        backBtnEl.addEventListener("click", () => {
+            window.location.href = "chat.html";
         });
 
         hourInputEl.addEventListener("blur", () => {
@@ -919,7 +921,7 @@
                     id: String(data.alarm.id || makeId()),
                     hour: snoozeDate.getHours(),
                     minute: snoozeDate.getMinutes(),
-                    label: String(data.alarm.label || (original ? original.label : "Alarm")),
+                    label: String(data.alarm.label || (original ? original.label : "שעון מעורר")),
                     triggerAt: snoozedTriggerAt,
                     createdAt: Number(data.alarm.createdAt || Date.now()),
                     enabled: true

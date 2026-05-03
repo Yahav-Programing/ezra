@@ -197,7 +197,7 @@ namespace ezra
             {
                 Console.WriteLine($"Error in HandleUserMessageAsync: {ex.Message}");
                 await HideTypingIndicatorAsync();
-                await SendMessageToWebAsync("Sorry, something went wrong while I was thinking.", isUser: false);
+                await SendMessageToWebAsync("סליחה, משהו השתבש בזמן שחשבתי.", isUser: false);
             }
             finally
             {
@@ -207,7 +207,7 @@ namespace ezra
 
         private async Task ProcessAIResponseAsync(string response)
         {
-            Regex clockRegex = new Regex(@"/clock\s*{\s*(\d{1,2}):(\d{2})\s*}", RegexOptions.IgnoreCase);
+            Regex clockRegex = new Regex(@"/clock\s*(?:\{\s*)?(\d{1,2}):(\d{2})(?:\s*\})?", RegexOptions.IgnoreCase);
             Match clockMatch = clockRegex.Match(response);
 
             if (clockMatch.Success)
@@ -221,7 +221,7 @@ namespace ezra
                 if (int.TryParse(clockMatch.Groups[1].Value, out int hour) &&
                     int.TryParse(clockMatch.Groups[2].Value, out int minute))
                 {
-                    await SendAlarmToClockAsync(hour, minute, "Alarm from Ezra");
+                    await SendAlarmToClockAsync(hour, minute, "שעון מעורר מעזרא");
                 }
 
                 return;
@@ -330,6 +330,7 @@ namespace ezra
                 key = GetString(root, "name");
             }
 
+            games = false;
             LaunchGameByKey(key);
         }
 
@@ -344,8 +345,8 @@ namespace ezra
                     type = "gamesList",
                     games = new[]
                     {
-                        new { id = "ghost", label = "Ghost Game", description = "A spooky quick game." },
-                        new { id = "2048", label = "2048", description = "Merge numbers and reach 2048." }
+                        new { id = "ghost", label = "משחק רוחות", description = "משחק קצר וקצת מפחיד." },
+                        new { id = "2048", label = "2048", description = "ממזגים מספרים ומגיעים ל-2048." }
                     }
                 };
 
@@ -428,7 +429,7 @@ namespace ezra
                 return;
             }
 
-            MessageBox.Show($"Could not find:\n{relativePath}", "Missing File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show($"לא הצלחתי למצוא:\n{relativePath}", "קובץ חסר", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
         private void NavigateToAppPage(string fileName)
@@ -445,7 +446,7 @@ namespace ezra
                 string escapedPath = WebUtility.HtmlEncode(filePath);
                 if (webView.CoreWebView2 != null)
                 {
-                    webView.CoreWebView2.NavigateToString($"<h1 style='color:red;font-family:Segoe UI'>Missing file: {escapedPath}</h1>");
+                    webView.CoreWebView2.NavigateToString($"<h1 style='color:red;font-family:Segoe UI'>קובץ חסר: {escapedPath}</h1>");
                 }
 
                 return;
