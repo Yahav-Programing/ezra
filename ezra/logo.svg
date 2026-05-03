@@ -1,0 +1,110 @@
+﻿<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+	<!-- Background -->
+	<rect width="512" height="512" rx="120" fill="#0B0F19"/>
+
+	<!-- Gradient -->
+	<defs>
+		<linearGradient id="grad" x1="110" y1="120" x2="420" y2="420" gradientUnits="userSpaceOnUse">
+			<stop offset="0%" stop-color="#4DA3FF"/>
+			<stop offset="35%" stop-color="#7C5CFF"/>
+			<stop offset="70%" stop-color="#FF4FD8"/>
+			<stop offset="100%" stop-color="#FF4D6D"/>
+		</linearGradient>
+
+		<!-- Glow -->
+		<filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+			<feGaussianBlur stdDeviation="10" result="blur"/>
+			<feMerge>
+				<feMergeNode in="blur"/>
+				<feMergeNode in="SourceGraphic"/>
+			</feMerge>
+		</filter>
+
+		<!-- Grain -->
+		<filter id="grain">
+			<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+			<feColorMatrix type="matrix" values="
+        0 0 0 0 0.5
+        0 0 0 0 0.5
+        0 0 0 0 0.5
+        0 0 0 0.10 0"/>
+		</filter>
+
+		<!-- Mask for grain -->
+		<mask id="eMask">
+			<rect width="512" height="512" fill="black"/>
+			<path d="
+        M 150 140
+        H 340
+        C 365 140, 365 180, 340 180
+        H 210
+        C 185 180, 185 230, 210 230
+        H 320
+        C 345 230, 345 270, 320 270
+        H 210
+        C 185 270, 185 320, 210 320
+        H 340
+        C 365 320, 365 360, 340 360
+        H 150
+        Z"
+			  fill="white"/>
+		</mask>
+
+	</defs>
+
+	<!-- MAIN E BASE (strong readable structure) -->
+	<path d="
+    M 150 140
+    H 340
+
+    C 365 140, 365 180, 340 180
+    H 210
+
+    C 185 180, 185 230, 210 230
+    H 320
+
+    C 345 230, 345 270, 320 270
+    H 210
+
+    C 185 270, 185 320, 210 320
+    H 340
+
+    C 365 320, 365 360, 340 360
+    H 150
+  "
+	stroke="url(#grad)"
+	stroke-width="34"
+	stroke-linecap="round"
+	stroke-linejoin="round"
+	fill="none"
+	filter="url(#glow)"
+  />
+
+	<!-- RIBBON LAYER (soft AI motion accent) -->
+	<path d="
+    M 155 150
+    H 330
+
+    C 345 150, 345 175, 330 175
+    H 215
+
+    C 200 175, 200 225, 215 225
+    H 315
+
+    C 330 225, 330 275, 315 275
+    H 215
+
+    C 200 275, 200 325, 215 325
+    H 330
+  "
+	stroke="rgba(255,255,255,0.18)"
+	stroke-width="10"
+	stroke-linecap="round"
+	fill="none"
+  />
+
+	<!-- Grain -->
+	<rect width="512" height="512" mask="url(#eMask)" filter="url(#grain)" opacity="0.2"/>
+
+</svg>
