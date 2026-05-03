@@ -31,9 +31,7 @@
 
         body {
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            background:
-                radial-gradient(circle at top, rgba(88, 183, 255, 0.18), transparent 40%),
-                linear-gradient(160deg, var(--bg-1), var(--bg-2));
+            background: radial-gradient(circle at top, rgba(88, 183, 255, 0.18), transparent 40%), linear-gradient(160deg, var(--bg-1), var(--bg-2));
             color: var(--text);
             padding: 24px 16px 40px;
         }
@@ -127,10 +125,10 @@
             gap: 8px;
         }
 
-        .field span {
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
+            .field span {
+                color: var(--muted);
+                font-size: 0.9rem;
+            }
 
         input {
             width: 100%;
@@ -144,11 +142,11 @@
             transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
         }
 
-        input:focus {
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateY(-1px);
-        }
+            input:focus {
+                border-color: var(--accent);
+                background: rgba(255, 255, 255, 0.1);
+                transform: translateY(-1px);
+            }
 
         .colon {
             font-size: 2rem;
@@ -165,13 +163,13 @@
             transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease, border-color 0.18s ease;
         }
 
-        button:hover {
-            transform: translateY(-1px);
-        }
+            button:hover {
+                transform: translateY(-1px);
+            }
 
-        button:active {
-            transform: translateY(0);
-        }
+            button:active {
+                transform: translateY(0);
+            }
 
         .primary-btn,
         .ghost-btn,
@@ -235,9 +233,9 @@
             background: rgba(255, 255, 255, 0.04);
         }
 
-        .alarm-card.is-disabled {
-            opacity: 0.6;
-        }
+            .alarm-card.is-disabled {
+                opacity: 0.6;
+            }
 
         .alarm-copy {
             min-width: 0;
@@ -283,10 +281,10 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .mini-btn.danger {
-            color: var(--danger);
-            border-color: rgba(255, 111, 111, 0.35);
-        }
+            .mini-btn.danger {
+                color: var(--danger);
+                border-color: rgba(255, 111, 111, 0.35);
+            }
 
         .empty-state {
             margin-top: 10px;
@@ -310,9 +308,9 @@
                 justify-content: stretch;
             }
 
-            .alarm-actions button {
-                width: 100%;
-            }
+                .alarm-actions button {
+                    width: 100%;
+                }
         }
 
         @media (max-width: 430px) {
@@ -345,48 +343,46 @@
         <section class="panel">
             <div class="section-row">
                 <div>
-                    <h2>הגדרת שעון מעורר</h2>
-                    <p class="section-copy">יוצרים שעון מעורר, והחלון הקופץ נפתח אוטומטית.</p>
+                    <h2 dir="rtl">הגדרת שעון מעורר</h2>
+                    <p class="section-copy"></p>
                 </div>
             </div>
 
             <form id="alarmForm" class="alarm-form" novalidate>
                 <div class="time-row">
                     <label class="field">
-                        <span>שעה</span>
-                        <input id="hourInput" type="number" min="0" max="23" value="07" required />
+                        <span dir="rtl">שעה</span>
+                        <input id="hourInput" type="number" min="0" max="23" value="07" required dir="rtl" />
                     </label>
 
                     <div class="colon">:</div>
 
                     <label class="field">
-                        <span>דקה</span>
-                        <input id="minuteInput" type="number" min="0" max="59" value="00" required />
+                        <span dir="rtl">דקה</span>
+                        <input id="minuteInput" type="number" min="0" max="59" value="00" required dir="rtl" />
                     </label>
                 </div>
 
                 <label class="field">
-                    <span>תווית</span>
-                    <input id="labelInput" type="text" maxlength="40" placeholder="לקום" />
+                    <input id="labelInput" type="text" maxlength="40" placeholder="שם התראה" dir="rtl" />
                 </label>
 
-                <button class="primary-btn" type="submit">שמירת שעון ופתיחת חלון קופץ</button>
+                <button class="primary-btn" type="submit" dir="rtl">ליצור את השעון</button>
             </form>
+            <p id="popupStatus" class="status"></p>
 
-            <p id="popupStatus" class="status">החלון הקופץ ייפתח אוטומטית כשתשמור שעון.</p>
         </section>
 
         <section class="panel">
             <div class="section-row">
                 <div>
-                    <h2>שעונים שמורים</h2>
-                    <p class="section-copy">החלון הקופץ מציג תמיד את השעון הפעיל הבא.</p>
+                    <h2 dir="rtl">שעונים שמורים</h2>
                 </div>
                 <span id="alarmCount" class="pill">0</span>
             </div>
 
             <div id="alarmList" class="alarm-list"></div>
-            <p id="emptyState" class="empty-state">אין שעונים עדיין.</p>
+            <p id="emptyState" class="empty-state" dir="rtl">אין שעונים שמורים.</p>
         </section>
     </main>
 
@@ -685,23 +681,23 @@
                         : "מושבת";
 
                 card.innerHTML = `
-                    <div class="alarm-copy">
-                        <div class="alarm-heading">
-                            <div class="alarm-time">${formatAlarmTime(alarm)}</div>
-                            ${badge}
+                        <div class="alarm-copy">
+                            <div class="alarm-heading">
+                                <div class="alarm-time">${formatAlarmTime(alarm)}</div>
+                                ${badge}
+                            </div>
+                            <div class="alarm-label">${escapeHtml(alarm.label)}</div>
+                            <div class="alarm-meta">${metaLabel}</div>
                         </div>
-                        <div class="alarm-label">${escapeHtml(alarm.label)}</div>
-                        <div class="alarm-meta">${metaLabel}</div>
-                    </div>
-                    <div class="alarm-actions">
-                        <button class="mini-btn" type="button" data-action="toggle" data-id="${alarm.id}">
-                            ${alarm.enabled ? "כיבוי" : "הפעלה"}
-                        </button>
-                        <button class="mini-btn danger" type="button" data-action="delete" data-id="${alarm.id}">
-                            מחיקה
-                        </button>
-                    </div>
-                `;
+                        <div class="alarm-actions">
+                            <button class="mini-btn" type="button" data-action="toggle" data-id="${alarm.id}">
+                                ${alarm.enabled ? "כיבוי" : "הפעלה"}
+                            </button>
+                            <button class="mini-btn danger" type="button" data-action="delete" data-id="${alarm.id}">
+                                מחיקה
+                            </button>
+                        </div>
+                    `;
 
                 alarmListEl.appendChild(card);
             });
