@@ -34,11 +34,13 @@ ollama serve
   
 ## Project Structure  
   
-Form1.cs - Main chat interface  
+Form1.cs - Main chat interface backend
+chat.html - main chat interface
 Form1.Designer.cs - UI layout  
 OllamaService.cs - Ollama API integration  
 Program.cs - Application entry point  
-ClockForm.cs - Clock/Alarm application  
+ClockForm.cs - Clock/Alarm application ( mostly WebView2 )
+clock.html + clock-popup.html - clock interface
 Data/ - Game executables and resources - the code for the games is not shared the .exe are in the releases
   
 ## Technology Stack  
@@ -86,7 +88,8 @@ neural-chat
   
 If Ollama is not available:  
 - Ensure ollama serve is running  
-- Check http://localhost:11434  
+note - in some cases ollama is running in the background 
+- Check http://localhost:11434
 - Verify model is installed with:
 ```bash
 ollama list  
@@ -110,6 +113,4 @@ This project is using the MIT License - see the LICENSE file for details.
   
 Ollama Official: https://ollama.com  
 Ollama Models: https://ollama.com/library  
-GitHub Repository: https://github.com/Yahav-Programing/ezra-ai
-  
 Note: This application requires Ollama installed and running locally 
