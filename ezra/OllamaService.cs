@@ -1,25 +1,46 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ezra
 {
     public class OllamaService
     {
-        private HttpClient _httpClient;
-        private string _modelName;
+        public sealed class OllamaResponse
+        {
+            public OllamaResponse(string rawResponse, string responseText, string thoughtText)
+            {
+                RawResponse = rawResponse;
+                ResponseText = responseText;
+                ThoughtText = thoughtText;
+            }
+
+            public string RawResponse { get; }
+            public string ResponseText { get; }
+            public string ThoughtText { get; }
+            public bool HasThought => !string.IsNullOrWhiteSpace(ThoughtText);
+        }
+
+        private static readonly Regex ThoughtBlockRegex = new Regex(
+            @"^\s*(?:<\|channel\|>|<\|channel>|<channel\|>)\s*thought\s*\r?\n(?<thought>.*?)(?:<\|channel\|>|<\|channel>|<channel\|>)(?<answer>[\s\S]*)$",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+        private readonly HttpClient _httpClient;
         private readonly string _ollamaUrl;
+        private string _modelName;
         private string _systemPrompt;
+        private bool _thinkingEnabled;
 
         public OllamaService(string modelName = "gemma4:e2b", string ollamaUrl = "http://localhost:11434")
         {
             _modelName = modelName;
             _ollamaUrl = ollamaUrl.TrimEnd('/');
             _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
-            // Default system prompt
-            _systemPrompt = "You are a helpful, friendly, and witty AI assistant. your name is עזרא You write concise and to-the-point answers." +
+            _systemPrompt =
+                "You are a helpful, friendly, and witty AI assistant. your name is עזרא You write concise and to-the-point answers." +
                 "you can use this commands for doing things you can do /game {2048 or ghost} - for opening one of the games also /clock {time HH:MM} - for seting an alarm";
         }
 
@@ -54,11 +75,21 @@ namespace ezra
             return _systemPrompt;
         }
 
+        public void SetThinkingEnabled(bool enabled)
+        {
+            _thinkingEnabled = enabled;
+        }
+
+        public bool IsThinkingEnabled()
+        {
+            return _thinkingEnabled;
+        }
+
         public async Task<bool> IsOllamaAvailableAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_ollamaUrl}/api/tags");
+                HttpResponseMessage response = await _httpClient.GetAsync($"{_ollamaUrl}/api/tags");
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -69,29 +100,34 @@ namespace ezra
 
         public async Task<string> GetResponseAsync(string userMessage)
         {
+            OllamaResponse response = await GetDetailedResponseAsync(userMessage);
+            return response.ResponseText;
+        }
+
+        public async Task<OllamaResponse> GetDetailedResponseAsync(string userMessage)
+        {
             try
             {
-                // Check if Ollama is running
-                var isAvailable = await IsOllamaAvailableAsync();
+                bool isAvailable = await IsOllamaAvailableAsync();
                 if (!isAvailable)
                 {
-                    return $"❌ Ollama לא זמין על {_ollamaUrl}. אנא התחל את Ollama ותנסה שוב.";
+                    return CreatePlainResponse($"❌ Ollama לא זמין על {_ollamaUrl}. אנא התחל את Ollama ותנסה שוב.");
                 }
 
                 var requestBody = new
                 {
                     model = _modelName,
                     prompt = userMessage,
-                    system = _systemPrompt,
+                    system = BuildSystemPrompt(),
                     stream = false
                 };
 
-                var jsonContent = new StringContent(
+                StringContent jsonContent = new StringContent(
                     JsonSerializer.Serialize(requestBody),
                     Encoding.UTF8,
                     "application/json");
 
-                var response = await _httpClient.PostAsync(
+                HttpResponseMessage response = await _httpClient.PostAsync(
                     $"{_ollamaUrl}/api/generate",
                     jsonContent);
 
@@ -99,40 +135,76 @@ namespace ezra
                 {
                     if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        return $"❌ המודל '{_modelName}' לא נמצא. בחר מודל אחר עם ollama pull {_modelName}";
+                        return CreatePlainResponse($"❌ המודל '{_modelName}' לא נמצא. בחר מודל אחר עם ollama pull {_modelName}");
                     }
-                    return $"❌ שגיאה: {response.StatusCode} - {response.ReasonPhrase}";
+
+                    return CreatePlainResponse($"❌ שגיאה: {response.StatusCode} - {response.ReasonPhrase}");
                 }
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                
-                using (JsonDocument jsonDoc = JsonDocument.Parse(responseContent))
+                string responseContent = await response.Content.ReadAsStringAsync();
+
+                using JsonDocument jsonDoc = JsonDocument.Parse(responseContent);
+                if (jsonDoc.RootElement.TryGetProperty("response", out JsonElement responseElement))
                 {
-                    if (jsonDoc.RootElement.TryGetProperty("response", out JsonElement responseElement))
-                    {
-                        var responseText = responseElement.GetString();
-                        return responseText?.Trim() ?? "לא קיבלתי תשובה";
-                    }
+                    string responseText = responseElement.GetString()?.Trim() ?? "לא קיבלתי תשובה";
+                    return ParseModelResponse(responseText);
                 }
 
-                return "שגיאה בעיבוד התשובה";
+                return CreatePlainResponse("שגיאה בעיבוד התשובה");
             }
             catch (HttpRequestException ex)
             {
-                return $"❌ שגיאה בחיבור: {ex.Message}\nודא ש-Ollama פועל: ollama serve";
+                return CreatePlainResponse($"❌ שגיאה בחיבור: {ex.Message}\nודא ש-Ollama פועל: ollama serve");
             }
             catch (JsonException ex)
             {
-                return $"❌ שגיאה בעיבוד JSON: {ex.Message}";
+                return CreatePlainResponse($"❌ שגיאה בעיבוד JSON: {ex.Message}");
             }
             catch (TaskCanceledException)
             {
-                return "❌ התשובה התמה - המודל לוקח יותר מדי זמן. נסה שוב.";
+                return CreatePlainResponse("❌ התשובה התמה - המודל לוקח יותר מדי זמן. נסה שוב.");
             }
             catch (Exception ex)
             {
-                return $"❌ שגיאה לא צפויה: {ex.Message}";
+                return CreatePlainResponse($"❌ שגיאה לא צפויה: {ex.Message}");
             }
+        }
+
+        private string BuildSystemPrompt()
+        {
+            return _thinkingEnabled ? "<|think|>\n" + _systemPrompt : _systemPrompt;
+        }
+
+        private static OllamaResponse CreatePlainResponse(string text)
+        {
+            string safeText = text?.Trim() ?? string.Empty;
+            return new OllamaResponse(safeText, safeText, string.Empty);
+        }
+
+        private static OllamaResponse ParseModelResponse(string rawResponse)
+        {
+            string safeText = rawResponse?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(safeText))
+            {
+                return new OllamaResponse(string.Empty, "לא קיבלתי תשובה", string.Empty);
+            }
+
+            Match match = ThoughtBlockRegex.Match(safeText);
+            if (!match.Success)
+            {
+                return new OllamaResponse(safeText, safeText, string.Empty);
+            }
+
+            string thought = match.Groups["thought"].Value.Trim();
+            string answer = match.Groups["answer"].Value.Trim();
+
+            if (string.IsNullOrWhiteSpace(answer))
+            {
+                answer = "לא קיבלתי תשובה";
+            }
+
+            return new OllamaResponse(safeText, answer, thought);
         }
     }
 }

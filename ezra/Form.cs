@@ -60,6 +60,7 @@ namespace ezra
         private async void Form1_Load(object sender, EventArgs e)
         {
             _ollamaService.SetModel("gemma4:e2b");
+            _ollamaService.SetThinkingEnabled(false);
 
             webView = new WebView2
             {
@@ -90,8 +91,15 @@ namespace ezra
                 return;
             }
 
-            if (IsCurrentPage("chat.html") && !_initialGreetingSent)
+            if (IsCurrentPage("chat.html"))
             {
+                await PostThinkingStateToWebAsync();
+
+                if (_initialGreetingSent)
+                {
+                    return;
+                }
+
                 _initialGreetingSent = true;
                 await Task.Delay(250);
                 await SendMessageToWebAsync("שלום!", isUser: false);
@@ -171,6 +179,10 @@ namespace ezra
                     case "getJoke":
                         await HandleGetJokeAsync();
                         break;
+
+                    case "setThinkingMode":
+                        await HandleSetThinkingModeAsync(root);
+                        break;
                 }
             }
             catch (Exception ex)
@@ -189,9 +201,15 @@ namespace ezra
 
             try
             {
-                string response = await _ollamaService.GetResponseAsync(userText);
+                OllamaService.OllamaResponse response = await _ollamaService.GetDetailedResponseAsync(userText);
                 await HideTypingIndicatorAsync();
-                await ProcessAIResponseAsync(response);
+
+                if (_ollamaService.IsThinkingEnabled() && response.HasThought)
+                {
+                    await SendThoughtToWebAsync(response.ThoughtText);
+                }
+
+                await ProcessAIResponseAsync(response.ResponseText);
             }
             catch (Exception ex)
             {
@@ -403,6 +421,13 @@ namespace ezra
             }
         }
 
+        private async Task HandleSetThinkingModeAsync(JsonElement root)
+        {
+            bool enabled = GetBoolean(root, "enabled", !_ollamaService.IsThinkingEnabled());
+            _ollamaService.SetThinkingEnabled(enabled);
+            await PostThinkingStateToWebAsync();
+        }
+
         private void LaunchGameByKey(string key)
         {
             string normalized = key.Trim().ToLowerInvariant();
@@ -532,6 +557,31 @@ namespace ezra
             return string.Empty;
         }
 
+        private static bool GetBoolean(JsonElement root, string propertyName, bool defaultValue)
+        {
+            if (!root.TryGetProperty(propertyName, out JsonElement value))
+            {
+                return defaultValue;
+            }
+
+            if (value.ValueKind == JsonValueKind.True)
+            {
+                return true;
+            }
+
+            if (value.ValueKind == JsonValueKind.False)
+            {
+                return false;
+            }
+
+            if (value.ValueKind == JsonValueKind.String && bool.TryParse(value.GetString(), out bool parsed))
+            {
+                return parsed;
+            }
+
+            return defaultValue;
+        }
+
         private async Task SendMessageToWebAsync(string message, bool isUser = true)
         {
             try
@@ -558,6 +608,51 @@ namespace ezra
             {
                 Console.WriteLine($"Error sending message: {ex.Message}");
             }
+        }
+
+        private async Task SendThoughtToWebAsync(string thought)
+        {
+            try
+            {
+                if (webView?.CoreWebView2 == null || string.IsNullOrWhiteSpace(thought))
+                {
+                    return;
+                }
+
+                string escapedThought = JsonSerializer.Serialize(thought);
+                string script = $@"
+(() => {{
+    if (typeof addThoughtMessage !== 'function') {{
+        return false;
+    }}
+
+    addThoughtMessage({escapedThought});
+    return true;
+}})();";
+
+                await webView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending thought: {ex.Message}");
+            }
+        }
+
+        private Task PostThinkingStateToWebAsync()
+        {
+            if (webView?.CoreWebView2 == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            string payload = JsonSerializer.Serialize(new
+            {
+                type = "thinkingState",
+                enabled = _ollamaService.IsThinkingEnabled()
+            });
+
+            webView.CoreWebView2.PostWebMessageAsJson(payload);
+            return Task.CompletedTask;
         }
 
         private async Task HideTypingIndicatorAsync()

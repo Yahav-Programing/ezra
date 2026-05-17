@@ -48,6 +48,32 @@ body.light{background:#f0f0f0;color:#202124;}
 .bot{align-self:flex-start;background:#303134;color:#e8eaed;border-bottom-left-radius:4px;}
 body.light .bot{background:#e0e0e0;color:#202124;}
 
+.thought-card{
+  display:block;
+  max-width:88%;
+  background:rgba(88,183,255,0.08);
+  border:1px solid rgba(88,183,255,0.28);
+}
+body.light .thought-card{
+  background:rgba(11,147,246,0.08);
+  border-color:rgba(11,147,246,0.22);
+}
+
+.thought-summary{
+  cursor:pointer;
+  list-style:none;
+  font-weight:600;
+  color:#9cd3ff;
+}
+body.light .thought-summary{color:#0b72c6;}
+.thought-summary::-webkit-details-marker{display:none;}
+
+.thought-content{
+  margin-top:10px;
+  color:inherit;
+  white-space:pre-wrap;
+}
+
 /* Typing indicator */
 .typing-indicator{
   display:flex;align-items:center;justify-content:center;
@@ -87,8 +113,15 @@ body.light #buttonsContainer{background:#f0f0f0;border-top-color:#ddd;}
 }
 .action-btn:hover{background:#3a3a3e;border-color:#0b93f6;transform:translateY(-2px);}
 .action-btn:active{transform:translateY(0);}
+.action-btn.is-active{
+  background:#0b93f6;
+  border-color:#58b7ff;
+  color:#fff;
+  box-shadow:0 0 0 2px rgba(11,147,246,.18);
+}
 body.light .action-btn{background:#fff;border-color:#ccc;color:#202124;}
 body.light .action-btn:hover{background:#f5f5f5;border-color:#0b93f6;}
+body.light .action-btn.is-active{background:#0b93f6;border-color:#0b93f6;color:#fff;}
 
 #userInput{
   flex:1;min-width:0;padding:12px 18px;border-radius:25px;
@@ -269,6 +302,7 @@ const clockBtn      = document.getElementById('clockBtn');
 const spotifyBtn    = document.getElementById('spotifyBtn');
 const gameBtn       = document.getElementById('gameBtn');
 const jokeBtn       = document.getElementById('jokeBtn');
+const buttonsContainer = document.getElementById('buttonsContainer');
 const gamesDialog   = document.getElementById('gamesDialog');
 const gamesDialogList = document.getElementById('gamesDialogList');
 const gamesDialogText = document.getElementById('gamesDialogText');
@@ -277,6 +311,20 @@ const cancelGamesDialogBtn = document.getElementById('cancelGamesDialogBtn');
 const canvas        = document.getElementById('canvas');
 const ctx           = canvas.getContext('2d');
 const THINKING_INDICATOR_MARKUP = '<img src="thinking.svg" class="thinking-loader" alt="" aria-hidden="true"/>';
+let thinkBtn        = document.getElementById('thinkBtn');
+let thinkingEnabled = false;
+
+if(!thinkBtn && buttonsContainer){
+  thinkBtn = document.createElement('button');
+  thinkBtn.className = 'action-btn';
+  thinkBtn.id = 'thinkBtn';
+  thinkBtn.type = 'button';
+  buttonsContainer.appendChild(thinkBtn);
+}
+
+if(thinkBtn){
+  thinkBtn.setAttribute('aria-pressed', 'false');
+}
 
 // ── Canvas resize ─────────────────────────────────────────
 function resizeCanvas(){
@@ -445,6 +493,56 @@ function addMessage(text, isUser = false){
 }
 
 // ── Show Typing Indicator ────────────────────────────────
+function addThoughtMessage(text){
+  const thoughtText = String(text || '').trim();
+  if(!thoughtText){
+    return null;
+  }
+
+  let container = document.getElementById('chatContainer');
+  if(!container){
+    console.error('chatContainer not found!');
+    return null;
+  }
+
+  const details = document.createElement('details');
+  details.className = 'message bot thought-card';
+  details.open = true;
+
+  const summary = document.createElement('summary');
+  summary.className = 'thought-summary';
+  summary.textContent = 'מה עזרא חושב';
+
+  const body = document.createElement('div');
+  body.className = 'thought-content';
+  body.textContent = thoughtText;
+
+  details.appendChild(summary);
+  details.appendChild(body);
+  container.appendChild(details);
+
+  setTimeout(() => {
+    container.scrollTop = container.scrollHeight;
+  }, 10);
+
+  return details;
+}
+
+function updateThinkingButton(){
+  if(!thinkBtn){
+    return;
+  }
+
+  thinkBtn.classList.toggle('is-active', thinkingEnabled);
+  thinkBtn.setAttribute('aria-pressed', thinkingEnabled ? 'true' : 'false');
+  thinkBtn.textContent = thinkingEnabled ? '🧠 חשיבה: פועל' : '🧠 חשיבה: כבוי';
+}
+
+function setThinkingMode(enabled){
+  thinkingEnabled = !!enabled;
+  updateThinkingButton();
+}
+
 function showTypingIndicator(){
   console.log('showTypingIndicator called');
 
@@ -643,6 +741,18 @@ jokeBtn.addEventListener('click', () => {
 // ──────────────────────────── CLOCK FUNCTIONALITY ──────────────────────────────
 
 // Clock toggle function
+if(thinkBtn){
+  setThinkingMode(false);
+  thinkBtn.addEventListener('click', () => {
+    const nextState = !thinkingEnabled;
+    setThinkingMode(nextState);
+
+    if(window.chrome && window.chrome.webview){
+      window.chrome.webview.postMessage({type: 'setThinkingMode', enabled: nextState});
+    }
+  });
+}
+
 function toggleClockView(){
   const chatDiv=document.getElementById('chatContainer');
   const clockDiv=document.getElementById('clockContainer');
@@ -784,6 +894,16 @@ if(window.chrome && window.chrome.webview){
       )
     ){
       showGamesDialog(d.games || d.items || d.list || d);
+      return;
+    }
+
+    if(d && d.type === 'thinkingState'){
+      setThinkingMode(!!d.enabled);
+      return;
+    }
+
+    if(d && d.type === 'thoughtMessage' && d.text){
+      addThoughtMessage(d.text);
       return;
     }
 
