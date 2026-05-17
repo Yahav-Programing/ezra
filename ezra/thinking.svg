@@ -1,11 +1,88 @@
-﻿<!DOCTYPE html>
+﻿<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
 
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
-<head>
-    <meta charset="utf-8" />
-    <title></title>
-</head>
-<body>
+  <defs>
+    <!-- Gradient ribbon -->
+    <linearGradient id="grad" x1="120" y1="120" x2="420" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4DA3FF"/>
+      <stop offset="40%" stop-color="#7C5CFF"/>
+      <stop offset="75%" stop-color="#FF4FD8"/>
+      <stop offset="100%" stop-color="#FF4D6D"/>
+    </linearGradient>
 
-</body>
-</html>
+    <!-- Glow -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Subtle base E (gives structure / readability) -->
+  <path d="
+    M 150 140
+    H 340
+
+    C 365 140, 365 180, 340 180
+    H 210
+
+    C 185 180, 185 230, 210 230
+    H 320
+
+    C 345 230, 345 270, 320 270
+    H 210
+
+    C 185 270, 185 320, 210 320
+    H 340
+
+    C 365 320, 365 360, 340 360
+    H 150
+  "
+  stroke="rgba(255,255,255,0.08)"
+  stroke-width="28"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  fill="none"
+  />
+
+  <!-- Animated ribbon -->
+  <path d="
+    M 150 140
+    H 340
+
+    C 365 140, 365 180, 340 180
+    H 210
+
+    C 185 180, 185 230, 210 230
+    H 320
+
+    C 345 230, 345 270, 320 270
+    H 210
+
+    C 185 270, 185 320, 210 320
+    H 340
+
+    C 365 320, 365 360, 340 360
+    H 150
+  "
+  stroke="url(#grad)"
+  stroke-width="34"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  fill="none"
+  filter="url(#glow)"
+  stroke-dasharray="1200"
+  stroke-dashoffset="1200">
+
+    <animate
+      attributeName="stroke-dashoffset"
+      from="1200"
+      to="0"
+      dur="2.2s"
+      repeatCount="indefinite"
+    />
+
+  </path>
+
+</svg>

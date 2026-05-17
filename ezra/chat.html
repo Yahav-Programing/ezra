@@ -48,17 +48,14 @@ body.light{background:#f0f0f0;color:#202124;}
 .bot{align-self:flex-start;background:#303134;color:#e8eaed;border-bottom-left-radius:4px;}
 body.light .bot{background:#e0e0e0;color:#202124;}
 
-/* Typing dots */
-.dot{display:inline-block;width:7px;height:7px;margin:0 2px;
-     background:#e8eaed;border-radius:50%;animation:blink 1s infinite;}
-.dot:nth-child(2){animation-delay:.2s;}
-.dot:nth-child(3){animation-delay:.4s;}
-body.light .dot{background:#555;}
-@keyframes blink{0%,80%,100%{opacity:0;}40%{opacity:1;}}
-
-/* Typing indicator styling */
+/* Typing indicator */
 .typing-indicator{
-  display:flex;align-items:center;gap:4px;padding:12px 16px;
+  display:flex;align-items:center;justify-content:center;
+  min-width:62px;padding:8px 12px;
+}
+
+.thinking-loader{
+  width:30px;height:30px;display:block;flex:0 0 auto;
 }
 
 /* Input bar */
@@ -279,6 +276,7 @@ const closeGamesDialogBtn = document.getElementById('closeGamesDialogBtn');
 const cancelGamesDialogBtn = document.getElementById('cancelGamesDialogBtn');
 const canvas        = document.getElementById('canvas');
 const ctx           = canvas.getContext('2d');
+const THINKING_INDICATOR_MARKUP = '<img src="thinking.svg" class="thinking-loader" alt="" aria-hidden="true"/>';
 
 // ── Canvas resize ─────────────────────────────────────────
 function resizeCanvas(){
@@ -361,8 +359,8 @@ function appendMsg(text, cls){
 
 function showTyping(){
   const d = document.createElement('div');
-  d.className = 'message bot';
-  d.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  d.className = 'message bot typing-indicator';
+  d.innerHTML = THINKING_INDICATOR_MARKUP;
   chatContainer.appendChild(d);
   scrollBottom();
   return d;
@@ -450,6 +448,11 @@ function addMessage(text, isUser = false){
 function showTypingIndicator(){
   console.log('showTypingIndicator called');
 
+  const existing = document.getElementById('typing-indicator');
+  if(existing){
+    return existing;
+  }
+
   let container = document.getElementById('chatContainer');
   if(!container){
     console.error('chatContainer not found!');
@@ -459,9 +462,10 @@ function showTypingIndicator(){
   const typingDiv = document.createElement('div');
   typingDiv.className = 'message bot typing-indicator';
   typingDiv.id = 'typing-indicator';
+  typingDiv.setAttribute('role', 'status');
+  typingDiv.setAttribute('aria-label', 'עזרא חושב');
 
-  // Create three dots
-  typingDiv.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  typingDiv.innerHTML = THINKING_INDICATOR_MARKUP;
 
   container.appendChild(typingDiv);
 

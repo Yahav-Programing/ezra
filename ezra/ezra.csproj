@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="chat.html;clock.html;clock-popup.html;chat-backup.html">
+    <None Update="chat.html;clock.html;clock-popup.html;chat-backup.html;thinking.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
